@@ -172,7 +172,7 @@ export const AudioPost: React.FC<Props> = ({
         </View>
 
         <Text style={styles.description}>{description}</Text>
-        <Text style={styles.description}>Posted by: {user}</Text>
+        <Text style={styles.userName}>Posted by: {user}</Text>
 
         <View style={styles.tagsContainer}>
           {tags.map((tag, index) => (
