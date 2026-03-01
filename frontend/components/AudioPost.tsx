@@ -1,5 +1,4 @@
 import { Link, useIsFocused } from "@react-navigation/native";
-import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import React, { useEffect } from "react";
 import {
   Dimensions,
@@ -36,8 +35,8 @@ export const AudioPost: React.FC<Post> = ({
   const { setActivePlayer, activePlayer } = useAudioManager();
   const isFocused = useIsFocused();
 
-  const player = useAudioPlayer({ uri: link });
-  const status = useAudioPlayerStatus(player);
+  // const player = useAudioPlayer({ uri: link });
+  // const status = useAudioPlayerStatus(player);
 
   /**
    * Audio player progress expressed as a decimal value between 0-1
@@ -48,8 +47,8 @@ export const AudioPost: React.FC<Post> = ({
   const thumbScale = useSharedValue(1);
   const thumbPosition = useSharedValue(0);
 
-  const duration = status?.duration ?? 0;
-  const position = status?.currentTime ?? 0;
+  const duration = activePlayer?.buffer?.duration!;
+  const position = activePlayer?.context.currentTime!;
 
   /**
    * Width of progress container for the current audio track.
@@ -64,7 +63,7 @@ export const AudioPost: React.FC<Post> = ({
   const panGesture = Gesture.Pan()
     .onStart(() => {
       //store the starting position for relative movement
-      player.pause();
+      activePlayer?.stop();
       thumbScale.value = withSpring(1.4);
     })
     .onUpdate((event) => {
@@ -86,8 +85,7 @@ export const AudioPost: React.FC<Post> = ({
       thumbScale.value = withSpring(1);
       //Seek to new timestamp of song
       const newTime = progress.value * duration;
-      player.seekTo(newTime);
-      player.play();
+      activePlayer?.start(newTime);
     });
 
   useEffect(() => {
@@ -98,19 +96,19 @@ export const AudioPost: React.FC<Post> = ({
 
   //Auto pause if screen unfocused
   useEffect(() => {
-    if (!isFocused && player.playing) {
-      player.pause();
+    if (!isFocused && activePlayer?.context?.state === "running") {
+      activePlayer.stop();
     }
   }, [isFocused]);
 
   const handlePlayPause = async () => {
-    if (player.playing) {
-      player.pause();
+    if (activePlayer?.context?.state === "running") {
+      activePlayer.stop();
     } else {
-      if (activePlayer?.id !== player.id) {
-        await setActivePlayer(player);
+      if (activePlayer?.id !== id) {
+        await setActivePlayer(link, id);
       }
-      player.play();
+      activePlayer?.start();
     }
   };
 
@@ -140,7 +138,7 @@ export const AudioPost: React.FC<Post> = ({
         <View style={styles.audioContainer}>
           <TouchableOpacity onPress={handlePlayPause} style={styles.playButton}>
             <Text style={styles.playText}>
-              {player.playing ? "Pause" : "Play"}
+              {activePlayer?.context?.state === "running" ? "Pause" : "Play"}
             </Text>
           </TouchableOpacity>
 

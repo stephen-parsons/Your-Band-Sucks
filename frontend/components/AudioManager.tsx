@@ -1,35 +1,49 @@
-import type { AudioPlayer } from "expo-audio";
 import React, { createContext, useCallback, useContext, useRef } from "react";
+import {
+  AudioContext as AudioApi,
+  AudioBufferSourceNode,
+} from "react-native-audio-api";
 
 interface AudioContextType {
-  activePlayer: AudioPlayer | null;
-  setActivePlayer: (player: AudioPlayer) => Promise<void>;
+  activePlayer: ActivePlayer | null;
+  setActivePlayer: (link: string, id: string) => Promise<void>;
   clearActivePlayer: () => void;
 }
+
+export type ActivePlayer = AudioBufferSourceNode & { id: string };
 
 const AudioContext = createContext<AudioContextType | null>(null);
 
 export const AudioProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const activePlayerRef = useRef<AudioPlayer | null>(null);
+  const activePlayerRef = useRef<ActivePlayer | null>(null);
+  const audioContext = new AudioApi();
 
-  /**
-   * Sets the currently active player.
-   * If another player is already active, it will be paused.
-   */
-  const setActivePlayer = useCallback(async (player: AudioPlayer) => {
-    // If another player is playing, pause it
-    if (activePlayerRef.current && activePlayerRef.current !== player) {
-      try {
-        activePlayerRef.current.pause();
-      } catch (e) {
-        console.warn("Error pausing previous player:", e);
-      }
-    }
-
-    activePlayerRef.current = player;
+  const setActivePlayer = useCallback(async (link: string, id: string) => {
+    const audioBuffer = await audioContext.decodeAudioData(link);
+    const playerNode = audioContext.createBufferSource();
+    playerNode.buffer = audioBuffer;
+    playerNode.connect(audioContext.destination);
+    activePlayerRef.current = { ...playerNode, id } as ActivePlayer;
   }, []);
+
+  //   /**
+  //    * Sets the currently active player.
+  //    * If another player is already active, it will be paused.
+  //    */
+  //   const setActivePlayer = useCallback(async (player: AudioPlayer) => {
+  //     // If another player is playing, pause it
+  //     if (activePlayerRef.current && activePlayerRef.current !== player) {
+  //       try {
+  //         activePlayerRef.current.pause();
+  //       } catch (e) {
+  //         console.warn("Error pausing previous player:", e);
+  //       }
+  //     }
+
+  //     activePlayerRef.current = player;
+  //   }, []);
 
   /**
    * Clears the active player reference.
