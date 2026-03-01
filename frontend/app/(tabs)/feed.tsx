@@ -1,9 +1,13 @@
 import { AudioProvider } from "@/components/AudioManager";
 import { AudioPost } from "@/components/AudioPost";
+import { usePostContext } from "@/components/PostProvider";
 import { setIsAudioActiveAsync } from "expo-audio";
 import { useEffect } from "react";
+import { FlatList } from "react-native";
 
 export default function Feed() {
+  const { posts } = usePostContext();
+
   useEffect(() => {
     async function configureAudio() {
       await setIsAudioActiveAsync(true);
@@ -11,15 +15,13 @@ export default function Feed() {
 
     configureAudio();
   }, []);
+
   return (
     <AudioProvider>
-      <AudioPost
-        user="Stephen (Lead developer)"
-        link="http://192.168.4.134:5500/Burnout_Stephen_2-19.mp3"
-        title="Burnout California (Demo)"
-        description="New Run Motor Run song"
-        avatar="http://192.168.4.134:5500/stephen.jpg"
-        tags={["rock", "punk", "riffs"]}
+      <FlatList
+        data={posts}
+        keyExtractor={(post) => post.id}
+        renderItem={({ item }) => <AudioPost {...item} />}
       />
     </AudioProvider>
   );

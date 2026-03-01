@@ -1,9 +1,11 @@
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import express from "express";
 import createError from "http-errors";
 import logger from "morgan";
 import path from "path";
 import { prisma } from "./prisma";
+import postsRouter from "./routes/posts";
 import usersRouter from "./routes/users";
 
 const app: express.Application = express();
@@ -17,9 +19,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
+app.use(cors({ origin: "http://localhost:8081" }));
 
 app.use("/health", (req, res) => res.send("Hello World!"));
 app.use("/users", usersRouter);
+app.use("/feed", postsRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

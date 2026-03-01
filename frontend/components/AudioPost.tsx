@@ -17,22 +17,13 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useAudioManager } from "./AudioManager";
+import { Post } from "./PostProvider";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 const THUMB_SIZE = 14; // same as in styles
 
-interface Props {
-  link: string;
-  title: string;
-  description: string;
-  image?: string;
-  tags: string[];
-  avatar?: string;
-  user: string;
-}
-
-export const AudioPost: React.FC<Props> = ({
+export const AudioPost: React.FC<Post> = ({
   link,
   title,
   description,
@@ -40,6 +31,7 @@ export const AudioPost: React.FC<Props> = ({
   tags,
   avatar,
   user,
+  id,
 }) => {
   const { setActivePlayer, activePlayer } = useAudioManager();
   const isFocused = useIsFocused();
@@ -136,7 +128,7 @@ export const AudioPost: React.FC<Props> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View id={"audio-post-" + id} style={styles.container}>
       <ScrollView>
         <View style={styles.header}>
           <Image source={{ uri: avatar }} style={styles.avatar} />
@@ -195,6 +187,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000",
+    minHeight: height,
   },
   header: {
     flexDirection: "row",
