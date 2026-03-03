@@ -1,10 +1,9 @@
 import { Link, useIsFocused } from "@react-navigation/native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import React, { useEffect } from "react";
+import React, { memo, useEffect } from "react";
 import {
   Dimensions,
   Image,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -23,7 +22,7 @@ const { width, height } = Dimensions.get("window");
 
 const THUMB_SIZE = 14; // same as in styles
 
-export const AudioPost: React.FC<Post> = ({
+const AudioPostComponent: React.FC<Post> = ({
   link,
   title,
   description,
@@ -88,7 +87,10 @@ export const AudioPost: React.FC<Post> = ({
       const newTime = progress.value * duration;
       player.seekTo(newTime);
       player.play();
-    });
+    })
+    //may need to remove this for production.
+    //needed for ExpoGo
+    .runOnJS(true);
 
   useEffect(() => {
     //Update thumb position as song progresses
@@ -129,59 +131,59 @@ export const AudioPost: React.FC<Post> = ({
 
   return (
     <View id={"audio-post-" + id} style={styles.container}>
-      <ScrollView>
-        <View style={styles.header}>
-          <Image source={{ uri: avatar }} style={styles.avatar} />
-          <Text style={styles.title}>{title}</Text>
+      <View style={styles.header}>
+        <Image source={{ uri: avatar }} style={styles.avatar} />
+        <Text style={styles.title}>{title}</Text>
+      </View>
+
+      {image && <Image source={{ uri: image }} style={styles.image} />}
+
+      <View style={styles.audioContainer}>
+        <TouchableOpacity onPress={handlePlayPause} style={styles.playButton}>
+          <Text style={styles.playText}>
+            {player.playing ? "Pause" : "Play"}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.progressContainer}>
+          <Text style={styles.time}>{formatTime(position)}</Text>
+
+          <GestureDetector gesture={panGesture}>
+            <View style={styles.progressBar}>
+              <Animated.View
+                style={[
+                  styles.progress,
+                  { width: `${(position / duration) * 100}%` },
+                ]}
+              />
+              <Animated.View style={[styles.thumb, thumbStyle]} />
+            </View>
+          </GestureDetector>
+
+          <Text style={styles.time}>{formatTime(duration)}</Text>
         </View>
+      </View>
 
-        {image && <Image source={{ uri: image }} style={styles.image} />}
+      <Text style={styles.description}>{description}</Text>
+      <Text style={styles.userName}>Posted by: {user}</Text>
 
-        <View style={styles.audioContainer}>
-          <TouchableOpacity onPress={handlePlayPause} style={styles.playButton}>
-            <Text style={styles.playText}>
-              {player.playing ? "Pause" : "Play"}
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.progressContainer}>
-            <Text style={styles.time}>{formatTime(position)}</Text>
-
-            <GestureDetector gesture={panGesture}>
-              <View style={styles.progressBar}>
-                <Animated.View
-                  style={[
-                    styles.progress,
-                    { width: `${(position / duration) * 100}%` },
-                  ]}
-                />
-                <Animated.View style={[styles.thumb, thumbStyle]} />
-              </View>
-            </GestureDetector>
-
-            <Text style={styles.time}>{formatTime(duration)}</Text>
-          </View>
-        </View>
-
-        <Text style={styles.description}>{description}</Text>
-        <Text style={styles.userName}>Posted by: {user}</Text>
-
-        <View style={styles.tagsContainer}>
-          {tags.map((tag, index) => (
-            <Link
-              key={index}
-              style={styles.tag}
-              onPress={() => console.info("Link clicked")}
-              action={{ type: "NONE" }}
-            >
-              #{tag}
-            </Link>
-          ))}
-        </View>
-      </ScrollView>
+      <View style={styles.tagsContainer}>
+        {tags.map((tag, index) => (
+          <Link
+            key={index}
+            style={styles.tag}
+            onPress={() => console.info("Link clicked")}
+            action={{ type: "NONE" }}
+          >
+            #{tag}
+          </Link>
+        ))}
+      </View>
     </View>
   );
 };
+
+export const AudioPost = memo(AudioPostComponent);
 
 const styles = StyleSheet.create({
   container: {

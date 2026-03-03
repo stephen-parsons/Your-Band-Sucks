@@ -19,7 +19,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
-app.use(cors({ origin: "http://localhost:8081" }));
+//todo: restrict cors in production
+app.use(cors());
 
 app.use("/health", (req, res) => res.send("Hello World!"));
 app.use("/users", usersRouter);

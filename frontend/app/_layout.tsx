@@ -9,6 +9,8 @@ import "react-native-reanimated";
 
 import { PostContextProvider } from "@/components/PostProvider";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -19,16 +21,20 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <PostContextProvider>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="modal"
-            options={{ presentation: "modal", title: "Modal" }}
-          />
-        </Stack>
-        <StatusBar style="auto" />
-      </PostContextProvider>
+      <GestureHandlerRootView>
+        <PostContextProvider>
+          <SafeAreaProvider>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="modal"
+                options={{ presentation: "modal", title: "Modal" }}
+              />
+            </Stack>
+          </SafeAreaProvider>
+          <StatusBar style="auto" />
+        </PostContextProvider>
+      </GestureHandlerRootView>
     </ThemeProvider>
   );
 }
