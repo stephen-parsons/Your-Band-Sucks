@@ -44,7 +44,7 @@ export function PostContextProvider({ children }: PropsWithChildren) {
       try {
         console.info("Fetching posts...");
         setIsLoading(true);
-        const result = await fetch(`${SERVER_URL}/feed`);
+        const result = await fetch(`${SERVER_URL}/posts`);
         const postsJson = (await result.json()) as Posts;
         setPosts(postsJson);
         setIsLoading(false);

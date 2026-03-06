@@ -8,4 +8,6 @@ const adapter = new PrismaPg({ connectionString });
 
 const prisma = new PrismaClient({ adapter });
 
+console.info("Created new prisma client");
+
 export { prisma };
