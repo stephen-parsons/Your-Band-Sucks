@@ -29,6 +29,7 @@ model Song {
   user      User      @relation(fields: [userId], references: [id])   
   title     String    
   description     String
+  url       String    //url to object in s3 bucket    
   likeCount Int @default(0)
   likes Like[]
   createdAt DateTime @default(now())
@@ -46,6 +47,6 @@ model Like {
 
 model Tag {    
   id        Int       @id @default(autoincrement())     
-  description String   // Field for tag description
+  description String  @unique // Field for tag description
   songs     Song[]    // New field for Songs
 }

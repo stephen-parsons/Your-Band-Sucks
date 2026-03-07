@@ -23,7 +23,7 @@ const { width, height } = Dimensions.get("window");
 const THUMB_SIZE = 14; // same as in styles
 
 const AudioPostComponent: React.FC<Post> = ({
-  link,
+  url,
   title,
   description,
   image,
@@ -35,7 +35,7 @@ const AudioPostComponent: React.FC<Post> = ({
   const { setActivePlayer, activePlayer } = useAudioManager();
   const isFocused = useIsFocused();
 
-  const player = useAudioPlayer({ uri: link });
+  const player = useAudioPlayer({ uri: url });
   const status = useAudioPlayerStatus(player);
 
   /**

@@ -11,7 +11,7 @@ export const SERVER_URL = config.server.baseUrl;
 
 export interface Post {
   id: string;
-  link: string;
+  url: string;
   title: string;
   description: string;
   image?: string;

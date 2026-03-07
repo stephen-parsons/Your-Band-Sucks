@@ -7,8 +7,10 @@ import { prisma } from "../prisma";
 const router = express.Router();
 
 router.get("/", async (req, res) => {
+  //todo: get presignedUrls for audio streaming?
+  //or make bucket public
   try {
-    const posts = await prisma.song.findMany();
+    const posts = await prisma.song.findMany({ include: { tags: true } });
     console.info("POSTS", posts);
     res.status(200).json(posts);
   } catch (error) {
@@ -23,10 +25,24 @@ router.post("/new", async (req, res) => {
       description,
       title,
       userId,
-      tags,
-    }: SongCreateInput & { userId: number } = req.body;
+      url,
+      tags: rawTags,
+    }: SongCreateInput & { userId: number; tags: string[] } = req.body;
     const newSong = await prisma.song.create({
-      data: { description, title, userId, tags },
+      data: {
+        description,
+        title,
+        userId,
+        tags: {
+          connectOrCreate: rawTags.map((tag) => ({
+            where: {
+              description: tag.toLowerCase(),
+            },
+            create: { description: tag.toLowerCase() },
+          })),
+        },
+        url,
+      },
     });
     console.info("NEW SONG", newSong);
     res.status(200).json(newSong);
@@ -37,31 +53,3 @@ router.post("/new", async (req, res) => {
 });
 
 export default router;
-
-const fakePosts = [
-  {
-    id: "1",
-    user: "Stephen (Lead developer)",
-    link: "http://192.168.4.134:5500/Burnout_Stephen_2-19.mp3",
-    title: "Burnout California (Demo)",
-    description: "New Run Motor Run song",
-    avatar: "http://192.168.4.134:5500/stephen.jpg",
-    tags: ["rock", "punk", "riffs"],
-  },
-  {
-    id: "2",
-    user: "Fake user",
-    link: "http://192.168.4.134:5500/Practice_2024_0626_CMDGF.mp3",
-    title: "Song 2",
-    description: "Song 2",
-    tags: ["tag"],
-  },
-  {
-    id: "3",
-    user: "Fake user 2",
-    link: "http://192.168.4.134:5500/Burnout_Stephen_2-19.mp3",
-    title: "Song 3",
-    description: "Song 3",
-    tags: ["tag 2"],
-  },
-];
