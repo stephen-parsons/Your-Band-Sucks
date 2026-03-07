@@ -29,7 +29,7 @@ const AudioPostComponent: React.FC<Post> = ({
   image,
   tags,
   avatar,
-  user,
+  user: { name },
   id,
 }) => {
   const { setActivePlayer, activePlayer } = useAudioManager();
@@ -165,7 +165,7 @@ const AudioPostComponent: React.FC<Post> = ({
       </View>
 
       <Text style={styles.description}>{description}</Text>
-      <Text style={styles.userName}>Posted by: {user}</Text>
+      <Text style={styles.userName}>Posted by: {name}</Text>
 
       <View style={styles.tagsContainer}>
         {tags.map((tag, index) => (
@@ -175,7 +175,7 @@ const AudioPostComponent: React.FC<Post> = ({
             onPress={() => console.info("Link clicked")}
             action={{ type: "NONE" }}
           >
-            #{tag}
+            #{tag.description}
           </Link>
         ))}
       </View>

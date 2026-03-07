@@ -48,7 +48,7 @@ export default function Feed() {
             )}
             stickyHeaderIndices={[0]}
             data={posts}
-            keyExtractor={(post) => post.id}
+            keyExtractor={(post) => post.id.toString()}
             renderItem={({ item }) => <AudioPost {...item} />}
           />
         )}

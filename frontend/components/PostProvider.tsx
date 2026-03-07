@@ -9,15 +9,23 @@ import { config } from "../config";
 
 export const SERVER_URL = config.server.baseUrl;
 
+interface User {
+  name: string;
+}
+
+interface Tag {
+  description: string;
+}
+
 export interface Post {
-  id: string;
+  id: number;
   url: string;
   title: string;
   description: string;
   image?: string;
-  tags: string[];
+  tags: Tag[];
   avatar?: string;
-  user: string;
+  user: User;
 }
 
 export type Posts = Post[];

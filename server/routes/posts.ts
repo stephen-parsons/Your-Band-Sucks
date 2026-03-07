@@ -10,7 +10,13 @@ router.get("/", async (req, res) => {
   //todo: get presignedUrls for audio streaming?
   //or make bucket public
   try {
-    const posts = await prisma.song.findMany({ include: { tags: true } });
+    const posts = await prisma.song.findMany({
+      include: {
+        tags: { select: { description: true } },
+        user: { select: { name: true } },
+      },
+      omit: { userId: true },
+    });
     console.info("POSTS", posts);
     res.status(200).json(posts);
   } catch (error) {
