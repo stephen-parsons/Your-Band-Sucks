@@ -3,8 +3,8 @@
 ## Basic Setup
 
 1. `npm i` to install npm dependencies
-2. Create a `.env` file in `/server` directory with your database url like: `DATABASE_URL={postgresql_db_url}`
-3. `brew install postgresql@18` and `brew services start postgresql` to run the postgresql server. Check `psql -d postgres -U {username}` to verify the server is running and accesible.
+2. Create a `.env` file in `/server` directory with your database url like: `DATABASE_URL={postgresql_db_url}`. The url for postgresql is usually in the format `postgresql://{username}:{password}@{host}:5432/{db}`. For local instances installed with homebrew `postgresql://localhost:5432/postgres` is usually sufficient.
+3. `brew install postgresql@18` and `brew services start postgresql@18` to run the postgresql server. Check `brew services list | grep postgresql@18` and `psql -d postgres -U {username}` to verify the server is running and accesible. You can stop the server with `brew services stop postgresql@18`
 4. `npm start` to start express server in `watch` mode
 
 ## Prisma setup
