@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 
-const userId = "2";
+const userId = 2;
 
 /**
  * Upload component

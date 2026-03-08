@@ -1,3 +1,4 @@
+import { getPosts, Posts } from "@/service/posts";
 import {
   createContext,
   PropsWithChildren,
@@ -5,30 +6,11 @@ import {
   useEffect,
   useState,
 } from "react";
-import { config } from "../config";
 
-export const SERVER_URL = config.server.baseUrl;
-
-interface User {
+export interface User {
   name: string;
-}
-
-interface Tag {
-  description: string;
-}
-
-export interface Post {
   id: number;
-  url: string;
-  title: string;
-  description: string;
-  image?: string;
-  tags: Tag[];
-  avatar?: string;
-  user: User;
 }
-
-export type Posts = Post[];
 
 interface IPostContext {
   posts: Posts | null;
@@ -52,9 +34,8 @@ export function PostContextProvider({ children }: PropsWithChildren) {
       try {
         console.info("Fetching posts...");
         setIsLoading(true);
-        const result = await fetch(`${SERVER_URL}/posts`);
-        const postsJson = (await result.json()) as Posts;
-        setPosts(postsJson);
+        const result = await getPosts();
+        setPosts(result);
         setIsLoading(false);
       } catch (e) {
         setError(e as Error);

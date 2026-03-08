@@ -1,3 +1,4 @@
+import { Post } from "@/service/posts";
 import { Link, useIsFocused } from "@react-navigation/native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import React, { memo, useEffect } from "react";
@@ -16,11 +17,13 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useAudioManager } from "./AudioManager";
-import { Post } from "./PostProvider";
+import { LikeButton } from "./ui/LikeButton";
 
 const { width, height } = Dimensions.get("window");
 
 const THUMB_SIZE = 14; // same as in styles
+
+const userId = 2;
 
 const AudioPostComponent: React.FC<Post> = ({
   url,
@@ -31,6 +34,7 @@ const AudioPostComponent: React.FC<Post> = ({
   avatar,
   user: { name },
   id,
+  liked,
 }) => {
   const { setActivePlayer, activePlayer } = useAudioManager();
   const isFocused = useIsFocused();
@@ -139,11 +143,16 @@ const AudioPostComponent: React.FC<Post> = ({
       {image && <Image source={{ uri: image }} style={styles.image} />}
 
       <View style={styles.audioContainer}>
-        <TouchableOpacity onPress={handlePlayPause} style={styles.playButton}>
-          <Text style={styles.playText}>
-            {player.playing ? "Pause" : "Play"}
-          </Text>
-        </TouchableOpacity>
+        <View>
+          <TouchableOpacity onPress={handlePlayPause} style={styles.playButton}>
+            <Text style={styles.playText}>
+              {player.playing ? "Pause" : "Play"}
+            </Text>
+          </TouchableOpacity>
+          <View style={styles.likeButton}>
+            <LikeButton initial={liked} songId={id} userId={userId} />
+          </View>
+        </View>
 
         <View style={styles.progressContainer}>
           <Text style={styles.time}>{formatTime(position)}</Text>
@@ -274,5 +283,8 @@ const styles = StyleSheet.create({
   tag: {
     color: "#1DA1F2",
     marginRight: 8,
+  },
+  likeButton: {
+    marginBottom: 12,
   },
 });
