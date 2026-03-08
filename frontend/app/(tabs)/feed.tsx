@@ -3,7 +3,7 @@ import { AudioPost } from "@/components/AudioPost";
 import { usePostContext } from "@/components/PostProvider";
 import { setAudioModeAsync, setIsAudioActiveAsync } from "expo-audio";
 import { useEffect } from "react";
-import { FlatList, Text } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Feed() {
@@ -27,32 +27,51 @@ export default function Feed() {
     >
       <AudioProvider>
         {error && (
-          <Text style={{ fontSize: 44, color: "white" }}>{error?.message}</Text>
+          <Text style={{ fontSize: 44, color: "white", textAlign: "center" }}>
+            {error?.message}
+          </Text>
         )}
         {isLoading ? (
-          "loading..."
+          <SafeAreaView style={[styles.container, styles.horizontal]}>
+            <ActivityIndicator size="large" color="#0000ff" />
+          </SafeAreaView>
         ) : (
-          <FlatList
-            ListHeaderComponent={() => (
-              <Text
-                style={{
-                  fontSize: 20,
-                  color: "white",
-                  textAlign: "center",
-                  backgroundColor: "black",
-                  padding: 10,
-                }}
-              >
-                Your band sucks!
-              </Text>
-            )}
-            stickyHeaderIndices={[0]}
-            data={posts}
-            keyExtractor={(post) => post.id.toString()}
-            renderItem={({ item }) => <AudioPost {...item} />}
-          />
+          !error &&
+          posts && (
+            <FlatList
+              ListHeaderComponent={() => (
+                <Text
+                  style={{
+                    fontSize: 20,
+                    color: "white",
+                    textAlign: "center",
+                    backgroundColor: "black",
+                    padding: 10,
+                  }}
+                >
+                  Your band sucks!
+                </Text>
+              )}
+              stickyHeaderIndices={[0]}
+              data={posts}
+              keyExtractor={(post) => post.id.toString()}
+              renderItem={({ item }) => <AudioPost {...item} />}
+            />
+          )
         )}
       </AudioProvider>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  horizontal: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    padding: 10,
+  },
+});

@@ -79,7 +79,7 @@ const S3UploadForm: React.FC = () => {
         userId,
         title,
         description,
-        url: `${userId}/${file.name}`,
+        key: `${userId}/${file.name}`,
         tags: [],
       });
 

@@ -1,6 +1,7 @@
 // server/routes/posts.ts
 
 import express from "express";
+import config from "../config";
 import { SongCreateInput } from "../generated/prisma/models";
 import { prisma } from "../prisma";
 import { createPresignedUrlWithClient } from "../service/S3Service";
@@ -8,6 +9,10 @@ import { createPresignedUrlWithClient } from "../service/S3Service";
 const router = express.Router();
 
 const userId = 2;
+
+function generateS3Url(key: string) {
+  return `https://${config.aws.bucket}.s3.us-west-1.amazonaws.com/${key}`;
+}
 
 router.get("/", async (req, res) => {
   //todo: get presignedUrls for audio streaming?
@@ -34,6 +39,7 @@ router.get("/", async (req, res) => {
     const newPosts = posts.map((post) => {
       const newPost = {
         ...post,
+        url: generateS3Url(post.key),
         liked: post.likes[0].type === "LIKE",
       } as any;
       delete newPost.likes;
@@ -55,7 +61,7 @@ router.post("/new", async (req, res) => {
       description,
       title,
       userId,
-      url,
+      key,
       tags: rawTags,
     }: SongCreateInput & { userId: number; tags: string[] } = req.body;
     const newSong = await prisma.song.create({
@@ -71,7 +77,7 @@ router.post("/new", async (req, res) => {
             create: { description: tag.toLowerCase() },
           })),
         },
-        url,
+        key,
       },
     });
     console.info("NEW SONG", newSong);

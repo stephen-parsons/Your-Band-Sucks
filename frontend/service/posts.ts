@@ -21,7 +21,8 @@ export interface UploadToS3Body {
 export interface CreateNewPostBody {
   title: string;
   description: string;
-  url: string;
+  //object key for S3
+  key: string;
   userId: number;
   tags: string[];
 }
@@ -98,7 +99,7 @@ export async function createNewPost({
   title,
   description,
   tags,
-  url,
+  key,
 }: CreateNewPostBody) {
   const res = await fetch(`${SERVER_URL}/posts/pre-signed-url`, {
     method: "POST",
@@ -110,7 +111,7 @@ export async function createNewPost({
       title,
       description,
       tags,
-      url,
+      key,
     }),
   });
 
