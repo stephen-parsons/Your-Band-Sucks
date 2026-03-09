@@ -80,12 +80,12 @@ const S3UploadForm: React.FC = () => {
       if (!blob) throw new Error("Error getting blob to upload");
 
       //Uploads file to s3 using pres-signed url
-      const uplaodResult = await uploadToS3({
+      const uploadResult = await uploadToS3({
         presignedUrl,
         mimeType: file.mimeType,
         blob,
       });
-      if (uplaodResult.ok) {
+      if (uploadResult.ok) {
         await createNewPost({
           userId,
           title,
@@ -94,6 +94,11 @@ const S3UploadForm: React.FC = () => {
           tags: [],
         });
       }
+
+      setTitle("");
+      setDescription("");
+      setTags("");
+      setFile(null);
 
       console.info("Upload successful!");
       Alert.alert("Upload successful");
