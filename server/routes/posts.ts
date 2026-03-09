@@ -8,7 +8,7 @@ import { createPresignedUrlWithClient } from "../service/S3Service";
 
 const router = express.Router();
 
-const userId = 2;
+const userId = 1;
 
 function generateS3Url(key: string) {
   return `https://${config.aws.bucket}.s3.us-west-1.amazonaws.com/${key}`;
@@ -40,7 +40,7 @@ router.get("/", async (req, res) => {
       const newPost = {
         ...post,
         url: generateS3Url(post.key),
-        liked: post.likes[0].type === "LIKE",
+        liked: post.likes[0]?.type === "LIKE",
       } as any;
       delete newPost.likes;
       return newPost;
@@ -95,13 +95,15 @@ router.post("/pre-signed-url", async (req, res) => {
     const {
       filename,
       userId,
+      contentType,
     }: {
       userId: number;
       filename: string;
+      contentType: string;
     } = req.body;
     const key = `${userId}/${filename}`;
-    const url = await createPresignedUrlWithClient({ key });
-    res.status(200).json(url);
+    const url = await createPresignedUrlWithClient({ key, contentType });
+    res.status(200).json({ url });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Failed to get pre-signed-url" });

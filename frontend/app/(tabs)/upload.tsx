@@ -35,8 +35,6 @@ const S3UploadForm: React.FC = () => {
       });
 
       if (!result.canceled) {
-        // Process the selected document(s)
-        console.log(result.assets[0]);
         setFile(result.assets[0]);
       } else {
         console.log("Document selection cancelled");
@@ -48,6 +46,11 @@ const S3UploadForm: React.FC = () => {
   }, []);
 
   const uploadFile = useCallback(async () => {
+    if (uploading) {
+      console.info("Already uploading...");
+      return;
+    }
+
     if (!file) {
       Alert.alert("Please select a file");
       return;
@@ -56,10 +59,13 @@ const S3UploadForm: React.FC = () => {
     try {
       setUploading(true);
 
+      console.log(file.mimeType);
+
       //Generate s3 object key based on user id and filename
       const presignedUrl = await getPresignedUrl({
         userId,
         filename: file.name,
+        contentType: file.mimeType,
       });
 
       let blob;
@@ -74,15 +80,22 @@ const S3UploadForm: React.FC = () => {
       if (!blob) throw new Error("Error getting blob to upload");
 
       //Uploads file to s3 using pres-signed url
-      await uploadToS3({ presignedUrl, mimeType: file.mimeType, blob });
-      await createNewPost({
-        userId,
-        title,
-        description,
-        key: `${userId}/${file.name}`,
-        tags: [],
+      const uplaodResult = await uploadToS3({
+        presignedUrl,
+        mimeType: file.mimeType,
+        blob,
       });
+      if (uplaodResult.ok) {
+        await createNewPost({
+          userId,
+          title,
+          description,
+          key: `${userId}/${file.name}`,
+          tags: [],
+        });
+      }
 
+      console.info("Upload successful!");
       Alert.alert("Upload successful");
     } catch (err) {
       console.error(err);

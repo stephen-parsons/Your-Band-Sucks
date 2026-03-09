@@ -10,6 +10,7 @@ export interface PresignedResponse {
 export interface GetPresignedUrlBody {
   userId: number;
   filename: string;
+  contentType?: string;
 }
 
 export interface UploadToS3Body {
@@ -60,6 +61,7 @@ export async function getPosts() {
 export async function getPresignedUrl({
   userId,
   filename,
+  contentType,
 }: GetPresignedUrlBody): Promise<string> {
   const res = await fetch(`${SERVER_URL}/posts/pre-signed-url`, {
     method: "POST",
@@ -69,6 +71,7 @@ export async function getPresignedUrl({
     body: JSON.stringify({
       userId,
       filename,
+      contentType,
     }),
   });
 
@@ -101,7 +104,7 @@ export async function createNewPost({
   tags,
   key,
 }: CreateNewPostBody) {
-  const res = await fetch(`${SERVER_URL}/posts/pre-signed-url`, {
+  const res = await fetch(`${SERVER_URL}/posts/new`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
