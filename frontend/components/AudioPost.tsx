@@ -1,7 +1,7 @@
 import { Post } from "@/service/posts";
 import { Link, useIsFocused } from "@react-navigation/native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import React, { memo, useEffect } from "react";
+import React, { memo, useCallback, useEffect } from "react";
 import {
   Dimensions,
   Image,
@@ -48,10 +48,11 @@ const AudioPostComponent: React.FC<Post> = ({
    **/
   const progress = useSharedValue(0);
   const thumbScale = useSharedValue(1);
-  const thumbPosition = useSharedValue(0);
+  const thumbPosition = useSharedValue(0 - THUMB_SIZE / 2);
 
   const duration = status?.duration ?? 0;
   const position = status?.currentTime ?? 0;
+  const progressBarWidth = player.isLoaded ? (position / duration) * 100 : 0;
 
   /**
    * Width of progress container for the current audio track.
@@ -98,10 +99,11 @@ const AudioPostComponent: React.FC<Post> = ({
     .runOnJS(true);
 
   useEffect(() => {
+    if (!player.isLoaded) return;
     //Update thumb position as song progresses
     thumbPosition.value =
       (position / duration) * progressContainerWidth - THUMB_SIZE / 2;
-  }, [position, duration]);
+  }, [position, duration, player]);
 
   //Auto pause if screen unfocused
   useEffect(() => {
@@ -110,7 +112,7 @@ const AudioPostComponent: React.FC<Post> = ({
     }
   }, [isFocused]);
 
-  const handlePlayPause = async () => {
+  const handlePlayPause = useCallback(async () => {
     if (player.playing) {
       player.pause();
     } else {
@@ -119,7 +121,7 @@ const AudioPostComponent: React.FC<Post> = ({
       }
       player.play();
     }
-  };
+  }, [player]);
 
   //Animated thumb
   const thumbStyle = useAnimatedStyle(() => ({
@@ -147,7 +149,11 @@ const AudioPostComponent: React.FC<Post> = ({
         <View>
           <TouchableOpacity onPress={handlePlayPause} style={styles.playButton}>
             <Text style={styles.playText}>
-              {player.playing ? "Pause" : "Play"}
+              {player.isLoaded
+                ? player.playing
+                  ? "Pause"
+                  : "Play"
+                : "Loading..."}
             </Text>
           </TouchableOpacity>
         </View>
@@ -158,10 +164,7 @@ const AudioPostComponent: React.FC<Post> = ({
           <GestureDetector gesture={panGesture}>
             <View style={styles.progressBar}>
               <Animated.View
-                style={[
-                  styles.progress,
-                  { width: `${(position / duration) * 100}%` },
-                ]}
+                style={[styles.progress, { width: `${progressBarWidth}%` }]}
               />
               <Animated.View style={[styles.thumb, thumbStyle]} />
             </View>
