@@ -31,7 +31,7 @@ export default function TabLayout() {
         options={{
           title: "Upload",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
+            <IconSymbol size={28} name="audio.jack.stereo" color={color} />
           ),
         }}
       />
@@ -45,6 +45,15 @@ export default function TabLayout() {
               name="chevron.left.forwardslash.chevron.right"
               color={color}
             />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="leaderboard"
+        options={{
+          title: "Leaderboard",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="table" color={color} />
           ),
         }}
       />

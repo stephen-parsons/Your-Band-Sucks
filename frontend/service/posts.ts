@@ -46,11 +46,22 @@ export interface Post {
    * Undefined if song has no like/dislike status
    */
   like?: Like;
+  likeCount: number;
 }
 
 export type Like = "like" | "dislike";
 
 export type Posts = Post[];
+
+export async function getMostPopularPosts() {
+  const result = await fetch(`${SERVER_URL}/posts/most-liked`);
+  return (await result.json()) as Posts;
+}
+
+export async function getLeastPopularPosts() {
+  const result = await fetch(`${SERVER_URL}/posts/least-liked`);
+  return (await result.json()) as Posts;
+}
 
 //todo: fetch based on userId to get personalized feed
 //todo: pagination

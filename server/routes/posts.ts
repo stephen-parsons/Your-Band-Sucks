@@ -156,4 +156,44 @@ router.post("/like", async (req, res) => {
   }
 });
 
+router.get("/most-liked", async (req, res) => {
+  try {
+    const posts = await prisma.song.findMany({
+      include: {
+        user: { select: { name: true } },
+      },
+      omit: { userId: true },
+      orderBy: {
+        likeCount: "desc",
+      },
+      take: 10,
+    });
+    console.info("POSTS", posts);
+    res.status(200).json(posts);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch most-liked" });
+  }
+});
+
+router.get("/least-liked", async (req, res) => {
+  try {
+    const posts = await prisma.song.findMany({
+      include: {
+        user: { select: { name: true } },
+      },
+      omit: { userId: true },
+      orderBy: {
+        likeCount: "asc",
+      },
+      take: 10,
+    });
+    console.info("POSTS", posts);
+    res.status(200).json(posts);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch least-liked" });
+  }
+});
+
 export default router;
