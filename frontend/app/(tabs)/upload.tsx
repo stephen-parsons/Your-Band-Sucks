@@ -59,8 +59,6 @@ const S3UploadForm: React.FC = () => {
     try {
       setUploading(true);
 
-      console.log(file.mimeType);
-
       //Generate s3 object key based on user id and filename
       const presignedUrl = await getPresignedUrl({
         userId,
@@ -174,6 +172,7 @@ const styles = StyleSheet.create({
     marginVertical: 15,
   },
   fileName: {
+    color: "white",
     marginLeft: 10,
     flexShrink: 1,
   },
@@ -182,7 +181,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 25,
     alignItems: "center",
-    marginBottom: 12,
   },
   buttonText: {
     color: "#fff",

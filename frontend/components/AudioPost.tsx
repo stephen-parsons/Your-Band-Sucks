@@ -17,7 +17,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useAudioManager } from "./AudioManager";
-import { LikeButton } from "./ui/LikeButton";
+import { LikeBar } from "./ui/LikeButton";
 
 const { width, height } = Dimensions.get("window");
 
@@ -34,7 +34,7 @@ const AudioPostComponent: React.FC<Post> = ({
   avatar,
   user: { name },
   id,
-  liked,
+  like,
 }) => {
   const { setActivePlayer, activePlayer } = useAudioManager();
   const isFocused = useIsFocused();
@@ -78,7 +78,9 @@ const AudioPostComponent: React.FC<Post> = ({
       thumbPosition.value =
         currPosition > progressContainerEndPosition
           ? progressContainerEndPosition
-          : currPosition;
+          : currPosition < 0
+            ? 0
+            : currPosition;
       //Calculate progress.
       //make sure not to exceeed the end of the song.
       const newProgress = currPosition / progressContainerWidth;
@@ -149,9 +151,6 @@ const AudioPostComponent: React.FC<Post> = ({
               {player.playing ? "Pause" : "Play"}
             </Text>
           </TouchableOpacity>
-          <View style={styles.likeButton}>
-            <LikeButton initial={liked} songId={id} userId={userId} />
-          </View>
         </View>
 
         <View style={styles.progressContainer}>
@@ -172,6 +171,7 @@ const AudioPostComponent: React.FC<Post> = ({
           <Text style={styles.time}>{formatTime(duration)}</Text>
         </View>
       </View>
+      <LikeBar songId={id} userId={userId} like={like} />
 
       <Text style={styles.description}>{description}</Text>
       <Text style={styles.userName}>Posted by: {name}</Text>
@@ -283,8 +283,5 @@ const styles = StyleSheet.create({
   tag: {
     color: "#1DA1F2",
     marginRight: 8,
-  },
-  likeButton: {
-    marginBottom: 12,
   },
 });

@@ -8,7 +8,7 @@ import { createPresignedUrlWithClient } from "../service/S3Service";
 
 const router = express.Router();
 
-const userId = 1;
+const userId = 2;
 
 function generateS3Url(key: string) {
   return `https://${config.aws.bucket}.s3.us-west-1.amazonaws.com/${key}`;
@@ -40,7 +40,7 @@ router.get("/", async (req, res) => {
       const newPost = {
         ...post,
         url: generateS3Url(post.key),
-        liked: post.likes[0]?.type === "LIKE",
+        like: post.likes[0]?.type.toLocaleLowerCase(),
       } as any;
       delete newPost.likes;
       return newPost;
@@ -123,7 +123,7 @@ router.post("/like", async (req, res) => {
       liked: boolean;
     } = req.body;
     const type = liked ? "LIKE" : "DISLIKE";
-    const result = await prisma.likeDislike.upsert({
+    await prisma.likeDislike.upsert({
       where: {
         userId_songId: {
           userId,
@@ -134,7 +134,7 @@ router.post("/like", async (req, res) => {
       create: { userId, songId, type },
     });
     //update likeCount on song
-    await prisma.song.update({
+    const result = await prisma.song.update({
       where: {
         id: songId,
       },
@@ -144,6 +144,9 @@ router.post("/like", async (req, res) => {
               increment: 1,
             }
           : { decrement: 1 },
+      },
+      select: {
+        likeCount: true,
       },
     });
     res.status(200).json(result);

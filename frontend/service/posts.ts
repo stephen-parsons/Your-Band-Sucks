@@ -42,9 +42,10 @@ export interface Post {
   avatar?: string;
   user: User;
   /**
-   * Whether or not the song has already been liked or disliked
+   * Whether or not the song has been liked or disliked
+   * Undefined if song has no like/dislike status
    */
-  liked: boolean;
+  like?: Like;
 }
 
 export type Like = "like" | "dislike";
