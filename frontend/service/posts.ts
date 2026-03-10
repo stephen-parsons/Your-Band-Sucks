@@ -39,7 +39,6 @@ export interface Post {
   description: string;
   image?: string;
   tags: Tag[];
-  avatar?: string;
   user: User;
   /**
    * Whether or not the song has been liked or disliked

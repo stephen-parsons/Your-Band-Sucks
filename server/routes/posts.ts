@@ -13,6 +13,7 @@ const userId = 2;
 function generateS3Url(key: string) {
   return `https://${config.aws.bucket}.s3.us-west-1.amazonaws.com/${key}`;
 }
+//TODO: for user queries, get avatar
 
 router.get("/", async (req, res) => {
   //todo: get presignedUrls for audio streaming?

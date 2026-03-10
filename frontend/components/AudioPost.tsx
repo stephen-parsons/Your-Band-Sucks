@@ -31,8 +31,7 @@ const AudioPostComponent: React.FC<Post> = ({
   description,
   image,
   tags,
-  avatar,
-  user: { name },
+  user: { name, avatar },
   id,
   like,
 }) => {
