@@ -4,15 +4,14 @@ import express from "express";
 import config from "../config";
 import { SongCreateInput } from "../generated/prisma/models";
 import { prisma } from "../prisma";
-import { createPresignedUrlWithClient } from "../service/S3Service";
+import {
+  createPresignedUrlWithClient,
+  generateS3Url,
+} from "../service/S3Service";
 
 const router = express.Router();
 
 const userId = 2;
-
-function generateS3Url(key: string) {
-  return `https://${config.aws.bucket}.s3.us-west-1.amazonaws.com/${key}`;
-}
 //TODO: for user queries, get avatar
 
 router.get("/", async (req, res) => {
@@ -28,7 +27,7 @@ router.get("/", async (req, res) => {
           select: { type: true },
         },
         tags: { select: { description: true } },
-        user: { select: { name: true } },
+        user: { select: { name: true, avatar: true } },
       },
       omit: { userId: true },
       where: {
@@ -40,7 +39,7 @@ router.get("/", async (req, res) => {
     const newPosts = posts.map((post) => {
       const newPost = {
         ...post,
-        url: generateS3Url(post.key),
+        url: generateS3Url(config.aws.bucket.audioFiles, post.key),
         like: post.likes[0]?.type.toLocaleLowerCase(),
       } as any;
       delete newPost.likes;
@@ -89,6 +88,9 @@ router.post("/new", async (req, res) => {
   }
 });
 
+/**
+ * Generates a pre-signed url for uploading an audio file.
+ */
 router.post("/pre-signed-url", async (req, res) => {
   //todo: get userId from jwt during auth
   //todo: sanitize filename for safety
@@ -103,7 +105,12 @@ router.post("/pre-signed-url", async (req, res) => {
       contentType: string;
     } = req.body;
     const key = `${userId}/${filename}`;
-    const url = await createPresignedUrlWithClient({ key, contentType });
+    const bucket = config.aws.bucket.audioFiles;
+    const url = await createPresignedUrlWithClient({
+      bucket,
+      key,
+      contentType,
+    });
     res.status(200).json({ url });
   } catch (e) {
     console.error(e);
@@ -161,7 +168,7 @@ router.get("/most-liked", async (req, res) => {
   try {
     const posts = await prisma.song.findMany({
       include: {
-        user: { select: { name: true } },
+        user: { select: { name: true, avatar: true } },
       },
       omit: { userId: true },
       orderBy: {
@@ -181,7 +188,7 @@ router.get("/least-liked", async (req, res) => {
   try {
     const posts = await prisma.song.findMany({
       include: {
-        user: { select: { name: true } },
+        user: { select: { name: true, avatar: true } },
       },
       omit: { userId: true },
       orderBy: {

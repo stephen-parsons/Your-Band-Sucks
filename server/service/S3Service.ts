@@ -4,23 +4,25 @@ import config from "../config";
 
 //todo: move to config?
 const REGION = config.aws.region;
-const BUCKET = config.aws.bucket;
+const BUCKETS = config.aws.bucket;
 //in seconds
 const URL_EXPIRATION = 3600;
 
 interface PreSignedUrlRequestParams {
   key: string;
   contentType: string;
+  bucket: (typeof BUCKETS)[keyof typeof BUCKETS];
 }
 
 export async function createPresignedUrlWithClient({
+  bucket,
   key,
   contentType,
 }: PreSignedUrlRequestParams): Promise<string> {
   try {
     const client = new S3Client({ region: REGION });
     const command = new PutObjectCommand({
-      Bucket: BUCKET,
+      Bucket: bucket,
       Key: key,
       ContentType: contentType,
     });
@@ -29,4 +31,8 @@ export async function createPresignedUrlWithClient({
     console.error(e);
     throw new Error(e);
   }
+}
+
+export function generateS3Url(bucket: string, key: string) {
+  return `https://${bucket}.s3.us-west-1.amazonaws.com/${key}`;
 }
