@@ -28,7 +28,8 @@ export interface CreateNewPostBody {
   tags: string[];
 }
 
-interface Tag {
+export interface Tag {
+  id: string;
   description: string;
 }
 
@@ -67,6 +68,11 @@ export async function getLeastPopularPosts() {
 export async function getPosts() {
   const result = await fetch(`${SERVER_URL}/posts`);
   return (await result.json()) as Posts;
+}
+
+export async function getTags() {
+  const result = await fetch(`${SERVER_URL}/tags`);
+  return (await result.json()) as Tag[];
 }
 
 export async function getPresignedUrl({

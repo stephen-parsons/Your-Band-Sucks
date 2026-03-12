@@ -6,6 +6,7 @@ import logger from "morgan";
 import path from "path";
 import { prisma } from "./prisma";
 import postsRouter from "./routes/posts";
+import tagsRouter from "./routes/tags";
 import usersRouter from "./routes/users";
 
 const app: express.Application = express();
@@ -25,6 +26,7 @@ app.use(cors());
 app.use("/health", (req, res) => res.send("Hello World!"));
 app.use("/users", usersRouter);
 app.use("/posts", postsRouter);
+app.use("/tags", tagsRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
