@@ -1,7 +1,7 @@
 import { User } from "@/components/PostProvider";
 import { config } from "@/config";
 
-export const SERVER_URL = config.server.baseUrl;
+const SERVER_URL = config.server.baseUrl;
 
 export interface PresignedResponse {
   url: string;
@@ -31,6 +31,7 @@ export interface CreateNewPostBody {
 export interface Tag {
   id: string;
   description: string;
+  count?: number;
 }
 
 export interface Post {

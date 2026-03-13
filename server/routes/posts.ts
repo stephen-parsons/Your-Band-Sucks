@@ -43,6 +43,7 @@ router.get("/", async (req, res) => {
         like: post.likes[0]?.type.toLocaleLowerCase(),
       } as any;
       delete newPost.likes;
+      delete newPost.key;
       return newPost;
     });
     console.info("POSTS", newPosts);

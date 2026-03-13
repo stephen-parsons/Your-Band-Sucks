@@ -1,7 +1,8 @@
 import Autocomplete from "@/components/AutoComplete";
+import { Header } from "@/components/ui/Header";
+import Tag from "@/components/ui/Tag";
 import useTags from "@/hooks/use-tags";
 import { createNewPost, getPresignedUrl, uploadToS3 } from "@/service/posts";
-import { Entypo, FontAwesome5 } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import React, { Dispatch, SetStateAction, useCallback, useState } from "react";
 import {
@@ -22,15 +23,13 @@ const userId = 2;
 const S3UploadForm: React.FC = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  //TODO: mkae this an array
-  //fetch existing tags at startup and cache in trie for fast lookup
   const [tags, setTags] = useState<string[]>([]);
   const [file, setFile] = useState<DocumentPicker.DocumentPickerAsset | null>(
     null,
   );
   const [uploading, setUploading] = useState(false);
 
-  //list of all tags from the db for aut-completing
+  //list of all tags from the db for auto-completing
   const { tags: tagList } = useTags();
 
   //TODO: sanitize filename and check file size limit (in bytes)
@@ -116,7 +115,7 @@ const S3UploadForm: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Header />
+      <Header text={"Show us what you got"} />
       <Text style={styles.label}>Title</Text>
       <TextInput style={styles.input} value={title} onChangeText={setTitle} />
       <Text style={styles.label}>Description</Text>
@@ -173,50 +172,23 @@ const Tags = ({
   return (
     <View style={styles.tagConatiner}>
       {tags.map((tag, idx) => (
-        <View style={styles.tag}>
-          <FontAwesome5
-            name="hashtag"
-            style={styles.hashtag}
-            size={12}
-            color="black"
-          ></FontAwesome5>
-          <Text style={styles.tagText}>{tag}</Text>
-          <Entypo
-            key={idx}
-            name="circle-with-cross"
-            size={12}
-            style={styles.xIcon}
-            color="black"
-            onPress={() => {
-              setTags((curr) => {
-                curr.splice(idx, 1);
-                return [...curr];
-              });
-            }}
-          />
-        </View>
+        <Tag
+          showCloseIcon
+          tag={tag}
+          idx={idx}
+          onPress={() => {
+            setTags((curr) => {
+              curr.splice(idx, 1);
+              return [...curr];
+            });
+          }}
+        />
       ))}
     </View>
   );
 };
 
 export default S3UploadForm;
-
-function Header() {
-  return (
-    <Text
-      style={{
-        fontSize: 20,
-        color: "white",
-        textAlign: "center",
-        backgroundColor: "black",
-        padding: 10,
-      }}
-    >
-      Show us what you got
-    </Text>
-  );
-}
 
 const styles = StyleSheet.create({
   container: {

@@ -2,13 +2,12 @@ import { Post, Posts } from "@/service/posts";
 import React, { useEffect } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { AnimatedCount } from "./ui/AnimtedCount";
 
 type TableProps = {
   title: string;
@@ -98,30 +97,7 @@ const Podium = ({ data }: { data: Posts }) => {
   );
 };
 
-/* ---------------- COUNT ANIMATION ---------------- */
-
-const AnimatedCount = ({ value }: { value: number }) => {
-  const animated = useSharedValue(0);
-
-  useEffect(() => {
-    animated.value = withTiming(value, { duration: 600 });
-  }, [value]);
-
-  const [display, setDisplay] = React.useState(0);
-
-  useDerivedValue(() => {
-    runOnJS(setDisplay)(Math.round(animated.value));
-  });
-
-  return (
-    <Text style={[styles.count, value < 0 ? styles.negative : styles.positive]}>
-      {display}
-    </Text>
-  );
-};
-
 /* ---------------- TABLE ---------------- */
-
 const Table: React.FC<TableProps> = ({ title, data }) => {
   const rows = data.slice(0, 10);
 
@@ -293,20 +269,5 @@ const styles = StyleSheet.create({
     padding: 8,
     textAlign: "right",
     fontSize: 12,
-  },
-
-  positive: {
-    color: "green",
-  },
-
-  negative: {
-    color: "red",
-  },
-
-  count: {
-    width: 60,
-    textAlign: "center",
-    padding: 6,
-    fontWeight: "bold",
   },
 });
