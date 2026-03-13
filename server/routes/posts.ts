@@ -26,10 +26,10 @@ router.get("/", async (req, res) => {
           },
           select: { type: true },
         },
-        tags: { select: { description: true } },
+        tags: { select: { description: true, id: true } },
         user: { select: { name: true, avatar: true } },
       },
-      omit: { userId: true },
+      omit: { userId: true, createdAt: true, updatedAt: true },
       where: {
         userId: {
           not: userId,
@@ -171,13 +171,13 @@ router.get("/most-liked", async (req, res) => {
       include: {
         user: { select: { name: true, avatar: true } },
       },
-      omit: { userId: true },
+      omit: { userId: true, createdAt: true, updatedAt: true },
       orderBy: {
         likeCount: "desc",
       },
       take: 10,
     });
-    console.info("POSTS", posts);
+    console.info("MOST LIKED", posts);
     res.status(200).json(posts);
   } catch (error) {
     console.error(error);
@@ -191,13 +191,13 @@ router.get("/least-liked", async (req, res) => {
       include: {
         user: { select: { name: true, avatar: true } },
       },
-      omit: { userId: true },
+      omit: { userId: true, createdAt: true, updatedAt: true },
       orderBy: {
         likeCount: "asc",
       },
       take: 10,
     });
-    console.info("POSTS", posts);
+    console.info("LEAST LIKED", posts);
     res.status(200).json(posts);
   } catch (error) {
     console.error(error);

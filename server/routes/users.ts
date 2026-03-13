@@ -55,14 +55,11 @@ router.get("/:id", async (req, res) => {
       select: {
         id: true,
         description: true,
-        createdAt: true,
-        updatedAt: true,
         _count: true,
       },
     });
-    console.log(userTags);
     const result = { ...user, tags: mapTagResults(userTags) };
-    console.info(result);
+    console.info("USER", result);
     res.status(200).json(result);
   } catch (e) {
     console.error(e);

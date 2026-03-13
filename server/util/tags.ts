@@ -1,6 +1,6 @@
 import { Tag } from "../generated/prisma/client";
 
-interface TagWithCount extends Tag {
+interface TagWithCount extends Omit<Tag, "createdAt" | "updatedAt"> {
   _count?: { songs: number };
 }
 

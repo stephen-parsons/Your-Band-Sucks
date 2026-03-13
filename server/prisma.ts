@@ -14,7 +14,6 @@ const prisma = new PrismaClient({ adapter }).$extends({
       avatar: {
         needs: { avatar: true },
         compute({ avatar }) {
-          console.log(avatar);
           if (avatar === "") return null;
           return generateS3Url(config.aws.bucket.images, avatar);
         },
