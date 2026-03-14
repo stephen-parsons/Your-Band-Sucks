@@ -1,15 +1,18 @@
 import AccountProfile from "@/components/Profile";
 import { getUserProfile, UserProfile } from "@/service/user";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const userId = 2;
+import { userId } from "../_layout";
 
 export default function LeaderBoardView() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
+
+  const refreshData = useCallback(() => {
+    setUser(null);
+  }, []);
 
   useEffect(() => {
     async function fetchUser() {
@@ -40,7 +43,7 @@ export default function LeaderBoardView() {
           <ActivityIndicator size="large" color="#0000ff" />
         </SafeAreaView>
       )}
-      {!error && user && <AccountProfile {...user} />}
+      {!error && user && <AccountProfile {...user} refreshData={refreshData} />}
     </View>
   );
 }

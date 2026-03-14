@@ -18,6 +18,15 @@ npx prisma migrate dev --name init
 npx prisma generate
 ```
 
+## AWS
+
+AWS access is needed for certain operations, like generating pre-signed urls. Contact your administrator (me) to get a development account. After that follow these steps:
+
+1. Install the aws-cli brew install `awscli`. Run `which aws` to verify installation.
+2. Run `aws configure sso` with your account details to setup sso.
+3. Run `aws sso login --profile {your-profile}` in order to login through the aws portal. Alternatively modify `~/.aws/config` to use a default acccount.
+4. Run `aws sts get-caller-identity` to verify your sso was successful.
+
 ## Troubleshooting
 
 If unable to run `psql`, you may need to symlink the command to your homebrew installation. Add `export PATH="/opt/homebrew/opt/postgresql@18/bin:$PATH"` to your bashrc or zshrc and source the changes. Make sure to specify the correct postgresql version you installed form Homebrew.

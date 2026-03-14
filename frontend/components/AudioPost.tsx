@@ -1,3 +1,4 @@
+import { userId } from "@/app/_layout";
 import { Post } from "@/service/posts";
 import { Link, useIsFocused } from "@react-navigation/native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
@@ -22,8 +23,6 @@ import { LikeBar } from "./ui/LikeButton";
 const { width, height } = Dimensions.get("window");
 
 const THUMB_SIZE = 14; // same as in styles
-
-const userId = 2;
 
 const AudioPostComponent: React.FC<Post> = ({
   url,

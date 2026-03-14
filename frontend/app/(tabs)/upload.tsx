@@ -14,8 +14,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-
-const userId = 2;
+import { userId } from "../_layout";
 
 /**
  * Upload component

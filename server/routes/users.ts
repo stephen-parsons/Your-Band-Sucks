@@ -91,7 +91,7 @@ router.post("/new", async (req, res) => {
 /**
  * Generates a pre-signed url for uploading an avatar.
  */
-router.post("/pre-signed-url/avatar", async (req, res) => {
+router.post("/avatar/pre-signed-url", async (req, res) => {
   //todo: get userId from create user response or jwt
   //todo: sanitize filename for safety
   try {
@@ -115,6 +115,35 @@ router.post("/pre-signed-url/avatar", async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Failed to get pre-signed-url for avatar" });
+  }
+});
+
+/**
+ * Updates avatar for a user
+ */
+router.post("/avatar/update", async (req, res) => {
+  try {
+    const { userId, key }: { userId: number; key: string } = req.body;
+
+    const nawAvatar = await prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        avatar: {
+          set: key,
+        },
+      },
+      select: {
+        id: true,
+        avatar: true,
+      },
+    });
+    console.info("AVATAR", nawAvatar);
+    res.status(200).json(nawAvatar);
+  } catch (e: any) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to update avatar" });
   }
 });
 

@@ -1,10 +1,19 @@
+import { userId } from "@/app/_layout";
 import { AnimatedCount } from "@/components/ui/AnimtedCount";
-import { UserProfile } from "@/service/user";
+import {
+  createNewAvatar,
+  getPresignedUrl,
+  uploadToS3,
+  UserProfile,
+} from "@/service/user";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import React, { ReactNode, useCallback, useState } from "react";
 import {
+  Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -27,33 +36,91 @@ const AccountProfile = ({
   email,
   songs: posts,
   tags,
-}: UserProfile) => {
+  refreshData,
+}: UserProfile & { refreshData: () => void }) => {
   const [isModalVisible, setModalVisible] = useState(false);
-  const [file, setFile] = useState<null>(null);
+  const [file, setFile] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  const handleUploadSubmit = () => {
-    // You'll handle your upload logic here!
-    setModalVisible(false);
-  };
+  const uploadImageFile = useCallback(async () => {
+    if (uploading) {
+      console.info("Already uploading...");
+      return;
+    }
+
+    if (!file) {
+      Alert.alert("Please select a file");
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      const filename = file.fileName || "avatar";
+
+      //Generate s3 object key based on user id and filename
+      const presignedUrl = await getPresignedUrl({
+        userId,
+        filename,
+        contentType: file.mimeType,
+      });
+
+      let blob;
+
+      if (Platform.OS === "web") {
+        blob = file.file;
+      } else {
+        const response = await fetch(file.uri);
+        blob = (await response.blob()) as Blob;
+      }
+
+      if (!blob) throw new Error("Error getting blob to upload");
+
+      //Uploads file to s3 using pres-signed url
+      const uploadResult = await uploadToS3({
+        presignedUrl,
+        mimeType: file.mimeType,
+        blob,
+      });
+
+      if (uploadResult.ok) {
+        await createNewAvatar({
+          userId,
+          key: `${userId}/${filename}`,
+        });
+      }
+
+      setFile(null);
+      refreshData();
+
+      console.info("Upload successful!");
+      Alert.alert("Upload successful");
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Upload failed");
+    } finally {
+      setUploading(false);
+      setModalVisible(false);
+    }
+  }, [file]);
 
   //TODO: sanitize filename and check file size limit (in bytes)
   const pickFile = useCallback(async () => {
-    alert("Nice!");
-    //   try {
-    //     const result = await DocumentPicker.getDocumentAsync({
-    //       multiple: false,
-    //     });
+    // No permission request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: "images", // Restrict to images only
+      allowsEditing: true, // Allows user to crop the image
+      aspect: [4, 3], // Optional: aspect ratio for editing
+      quality: 1, // Optional: image quality (0 to 1)
+    });
 
-    //     if (!result.canceled) {
-    //       setFile(result.assets[0]);
-    //     } else {
-    //       console.log("Document selection cancelled");
-    //     }
-    //   } catch (err) {
-    //     console.error(err);
-    //     Alert.alert("Error picking file");
-    //   }
+    if (!result.canceled) {
+      if (result.assets[0].type !== "image")
+        throw new Error("Only images allowed!");
+      // Access the image URI from result.assets[0].ur
+      console.info("Picked image file: " + result.assets[0].fileName);
+      setFile(result.assets[0]);
+    }
   }, []);
 
   function ListItem({
@@ -173,21 +240,33 @@ const AccountProfile = ({
               </TouchableOpacity>
             </View>
 
+            {file && (
+              <Image
+                style={styles.previewImage}
+                source={{ uri: file.uri }}
+              ></Image>
+            )}
+
             <View style={styles.formPlaceholder}>
               <Pressable
                 onPress={pickFile}
                 style={[styles.uploadButton, styles.paddedButton]}
               >
-                <Text style={styles.uploadButtonText}>Select File</Text>
+                <Text style={styles.uploadButtonText}>
+                  {!file ? "Select image" : "Choose new image"}
+                </Text>
               </Pressable>
             </View>
 
             {file && (
               <TouchableOpacity
                 style={styles.uploadButton}
-                onPress={handleUploadSubmit}
+                onPress={uploadImageFile}
+                disabled={uploading}
               >
-                <Text style={styles.uploadButtonText}>Confirm Upload</Text>
+                <Text style={styles.uploadButtonText}>
+                  {uploading ? "Uploading to the world..." : "Send it!"}
+                </Text>
               </TouchableOpacity>
             )}
           </Animated.View>
@@ -317,6 +396,11 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  previewImage: {
+    height: 200,
+    width: 200,
+    margin: "auto",
   },
 });
 

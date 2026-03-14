@@ -16,6 +16,8 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
+export const userId = 2;
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 

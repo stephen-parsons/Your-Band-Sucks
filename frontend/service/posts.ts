@@ -137,7 +137,7 @@ export async function createNewPost({
   });
 
   if (!res.ok) {
-    throw new Error("Failed to get presigned URL");
+    throw new Error("Failed to create new post");
   }
   return await res.json();
 }
