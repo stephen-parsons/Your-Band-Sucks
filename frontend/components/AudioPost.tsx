@@ -1,4 +1,3 @@
-import { userId } from "@/app/_layout";
 import { Post } from "@/service/posts";
 import { Link, useIsFocused } from "@react-navigation/native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
@@ -172,7 +171,7 @@ const AudioPostComponent: React.FC<Post> = ({
           <Text style={styles.time}>{formatTime(duration)}</Text>
         </View>
       </View>
-      <LikeBar songId={id} userId={userId} like={like} />
+      <LikeBar songId={id} like={like} />
 
       <Text style={styles.description}>{description}</Text>
       <Text style={styles.userName}>Posted by: {name}</Text>

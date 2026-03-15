@@ -1,8 +1,9 @@
 import Autocomplete from "@/components/AutoComplete";
+import { usePostContext } from "@/components/PostProvider";
 import { Header } from "@/components/ui/Header";
 import Tag from "@/components/ui/Tag";
 import useTags from "@/hooks/use-tags";
-import { createNewPost, getPresignedUrl, uploadToS3 } from "@/service/posts";
+import { uploadToS3 } from "@/service/posts";
 import * as DocumentPicker from "expo-document-picker";
 import React, { Dispatch, SetStateAction, useCallback, useState } from "react";
 import {
@@ -14,12 +15,12 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { userId } from "../_layout";
 
 /**
  * Upload component
  */
 const S3UploadForm: React.FC = () => {
+  const { service } = usePostContext();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState<string[]>([]);
@@ -64,8 +65,7 @@ const S3UploadForm: React.FC = () => {
       setUploading(true);
 
       //Generate s3 object key based on user id and filename
-      const presignedUrl = await getPresignedUrl({
-        userId,
+      const { objectKey, url: presignedUrl } = await service.getPresignedUrl({
         filename: file.name,
         contentType: file.mimeType,
       });
@@ -88,11 +88,10 @@ const S3UploadForm: React.FC = () => {
         blob,
       });
       if (uploadResult.ok) {
-        await createNewPost({
-          userId,
+        await service.createNewPost({
           title,
           description,
-          key: `${userId}/${file.name}`,
+          key: objectKey,
           tags: [],
         });
       }
@@ -110,7 +109,7 @@ const S3UploadForm: React.FC = () => {
     } finally {
       setUploading(false);
     }
-  }, [file]);
+  }, [file, service]);
 
   return (
     <View style={styles.container}>

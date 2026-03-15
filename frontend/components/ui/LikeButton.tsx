@@ -1,4 +1,4 @@
-import { Post, updateLikeStatus } from "@/service/posts";
+import { Post } from "@/service/posts";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { memo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -10,6 +10,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
+import { usePostContext } from "../PostProvider";
 
 interface LikeBarProps {
   like: Post["like"];
@@ -19,7 +20,6 @@ interface LikeBarProps {
 
 interface LikeButtonProps {
   songId: Post["id"];
-  userId: number;
   //like or dislike button
   variant: Post["like"];
   liked: SharedValue<number>;
@@ -30,12 +30,12 @@ interface LikeButtonProps {
 
 function LikeButtonComponent({
   songId,
-  userId,
   variant,
   liked,
   voted,
   setVoted,
 }: LikeButtonProps) {
+  const { service } = usePostContext();
   const [pressed, setPressed] = useState<boolean>(typeof voted !== "undefined");
   const outlineStyle = useAnimatedStyle(() => {
     const value = calculateSharedValueBasedOnVariant(
@@ -71,13 +71,13 @@ function LikeButtonComponent({
         if (!pressed) setPressed(true);
         if (liked.value === 1 || liked.value === 0) {
           if (variant === "like" && liked.value === 0) {
-            updateLikeStatus({ liked: true, userId, songId });
+            service.updateLikeStatus({ liked: true, songId });
             liked.value = withSpring(1, undefined, () => setVoted(variant));
           } else if (variant === "dislike" && liked.value === 1) {
-            updateLikeStatus({ liked: false, userId, songId });
+            service.updateLikeStatus({ liked: false, songId });
             liked.value = withSpring(0, undefined, () => setVoted(variant));
           } else if (variant === "dislike" && liked.value === 0 && !voted) {
-            updateLikeStatus({ liked: false, userId, songId });
+            service.updateLikeStatus({ liked: false, songId });
             liked.value = 1;
             liked.value = withSpring(0, undefined, () => setVoted(variant));
           }
@@ -97,7 +97,7 @@ function LikeButtonComponent({
 
 export const LikeButton = memo(LikeButtonComponent);
 
-function LikeBarComponent({ songId, userId, like }: LikeBarProps) {
+function LikeBarComponent({ songId, like }: LikeBarProps) {
   const [voted, setVoted] = useState<LikeBarProps["like"]>(like);
   const liked = useSharedValue(likeToInt(like));
 
@@ -106,7 +106,6 @@ function LikeBarComponent({ songId, userId, like }: LikeBarProps) {
       <View style={styles.likeView}>
         <LikeButton
           songId={songId}
-          userId={userId}
           variant="like"
           liked={liked}
           voted={voted}
@@ -118,7 +117,6 @@ function LikeBarComponent({ songId, userId, like }: LikeBarProps) {
         <Text style={styles.likeText}>idk, kinda whack...</Text>
         <LikeButton
           songId={songId}
-          userId={userId}
           variant="dislike"
           liked={liked}
           voted={voted}

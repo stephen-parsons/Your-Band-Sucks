@@ -1,11 +1,5 @@
-import { userId } from "@/app/_layout";
 import { AnimatedCount } from "@/components/ui/AnimtedCount";
-import {
-  createNewAvatar,
-  getPresignedUrl,
-  uploadToS3,
-  UserProfile,
-} from "@/service/user";
+import { uploadToS3, UserProfile, UserService } from "@/service/user";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import React, { ReactNode, useCallback, useState } from "react";
@@ -37,7 +31,8 @@ const AccountProfile = ({
   songs: posts,
   tags,
   refreshData,
-}: UserProfile & { refreshData: () => void }) => {
+  service,
+}: UserProfile & { service: UserService; refreshData: () => void }) => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [file, setFile] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -59,8 +54,7 @@ const AccountProfile = ({
       const filename = file.fileName || "avatar";
 
       //Generate s3 object key based on user id and filename
-      const presignedUrl = await getPresignedUrl({
-        userId,
+      const { url: presignedUrl, objectKey } = await service.getPresignedUrl({
         filename,
         contentType: file.mimeType,
       });
@@ -84,9 +78,8 @@ const AccountProfile = ({
       });
 
       if (uploadResult.ok) {
-        await createNewAvatar({
-          userId,
-          key: `${userId}/${filename}`,
+        await service.createNewAvatar({
+          key: objectKey,
         });
       }
 
@@ -203,7 +196,17 @@ const AccountProfile = ({
 
       {tags.length > 0 && (
         <>
-          <Text style={styles.uploadsHeader}>Some of your favorite tags:</Text>
+          <View style={styles.row}>
+            <Text style={styles.uploadsHeader}>
+              Some of your favorite tags:
+            </Text>
+            <MaterialCommunityIcons
+              style={[styles.uploadsHeaderIcon, { marginTop: 4 }]}
+              name={"pound"}
+              size={20}
+              color={"grey"}
+            />
+          </View>
 
           {/* Items List */}
           <Animated.FlatList

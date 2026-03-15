@@ -16,40 +16,60 @@ export interface UserProfile extends User {
 }
 
 interface CreateNewAvatarBody {
-  userId: number;
   //key for s3 object in images bucket
   key: string;
 }
 
-export async function getUserProfile(id: number) {
-  if (typeof id !== "number") throw new Error("Dont mess with my API!");
-  const result = await fetch(`${SERVER_URL}/users/${id}`);
-  return (await result.json()) as UserProfile;
-}
-
-export async function getPresignedUrl({
-  userId,
-  filename,
-  contentType,
-}: GetPresignedUrlBody): Promise<string> {
-  const res = await fetch(`${SERVER_URL}/users/avatar/pre-signed-url`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      userId,
-      filename,
-      contentType,
-    }),
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to get presigned URL");
+export class UserService {
+  private apiClient;
+  constructor(apiClient: typeof fetch) {
+    this.apiClient = apiClient;
   }
 
-  const data: PresignedResponse = await res.json();
-  return data.url;
+  public async getUserProfile() {
+    const result = await this.apiClient(`${SERVER_URL}/users/current`);
+    return (await result.json()) as UserProfile;
+  }
+
+  public async getPresignedUrl({
+    filename,
+    contentType,
+  }: GetPresignedUrlBody): Promise<PresignedResponse> {
+    const res = await fetch(`${SERVER_URL}/users/avatar/pre-signed-url`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        filename,
+        contentType,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to get presigned URL");
+    }
+
+    const data: PresignedResponse = await res.json();
+    return data;
+  }
+
+  public async createNewAvatar({ key }: CreateNewAvatarBody) {
+    const res = await fetch(`${SERVER_URL}/users/avatar/update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        key,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to create new avatar");
+    }
+    return await res.json();
+  }
 }
 
 export async function uploadToS3({
@@ -64,22 +84,4 @@ export async function uploadToS3({
     },
     body: blob,
   });
-}
-
-export async function createNewAvatar({ userId, key }: CreateNewAvatarBody) {
-  const res = await fetch(`${SERVER_URL}/users/avatar/update`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      userId,
-      key,
-    }),
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to create new avatar");
-  }
-  return await res.json();
 }

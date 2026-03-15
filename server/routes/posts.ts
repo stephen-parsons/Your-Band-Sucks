@@ -2,10 +2,10 @@
 
 import express from "express";
 import { AuthenticatedRequest } from "..";
+import { cognitoAuthorizer } from "../authorizer";
 import config from "../config";
 import { SongCreateInput } from "../generated/prisma/models";
 import { prisma } from "../prisma";
-import { verifyAccessToken } from "../service/CognitoService";
 import {
   createPresignedUrlWithClient,
   generateS3Url,
@@ -13,37 +13,10 @@ import {
 
 const router = express.Router();
 
-router.use(async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).send("Unauthorized: Missing token");
-  }
-
-  const token = authHeader.split(" ")[1];
-
-  try {
-    const result = await verifyAccessToken(token);
-    const user = await prisma.user.findFirst({
-      where: {
-        cognitoId: result.sub,
-      },
-      select: {
-        id: true,
-      },
-    });
-    if (!user) throw new Error("No user found!!!");
-    //add the queried userId to the req object
-    (req as AuthenticatedRequest).userId = user.id;
-    console.log("Found user: " + user.id);
-    next(); // Token is valid, proceed to the next handler
-  } catch (error: any) {
-    res.status(401).send(error.message);
-  }
-});
+router.use(cognitoAuthorizer);
 
 router.get("/", async (req: AuthenticatedRequest, res) => {
   //todo: get presignedUrls for audio streaming?
-  //or make bucket public
   try {
     const posts = await prisma.song.findMany({
       include: {
@@ -81,17 +54,16 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
   }
 });
 
-router.post("/new", async (req, res) => {
-  //todo: get userId from jwt during auth
+router.post("/new", async (req: AuthenticatedRequest, res) => {
+  const userId = req.userId!;
   //store url as object key or full url to bucket?
   try {
     const {
       description,
       title,
-      userId,
       key,
       tags: rawTags,
-    }: SongCreateInput & { userId: number; tags: string[] } = req.body;
+    }: SongCreateInput & { tags: string[] } = req.body;
     const newSong = await prisma.song.create({
       data: {
         description,
@@ -119,16 +91,14 @@ router.post("/new", async (req, res) => {
 /**
  * Generates a pre-signed url for uploading an audio file.
  */
-router.post("/pre-signed-url", async (req, res) => {
-  //todo: get userId from jwt during auth
+router.post("/pre-signed-url", async (req: AuthenticatedRequest, res) => {
+  const userId = req.userId!;
   //todo: sanitize filename for safety
   try {
     const {
       filename,
-      userId,
       contentType,
     }: {
-      userId: number;
       filename: string;
       contentType: string;
     } = req.body;
@@ -139,23 +109,22 @@ router.post("/pre-signed-url", async (req, res) => {
       key,
       contentType,
     });
-    res.status(200).json({ url });
+    res.status(200).json({ objectKey: key, url });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Failed to get pre-signed-url" });
   }
 });
 
-router.post("/like", async (req, res) => {
+router.post("/like", async (req: AuthenticatedRequest, res) => {
   //todo: get userId from jwt during auth
+  const userId = req.userId!;
   try {
     const {
-      userId,
       liked,
       songId,
     }: {
       songId: number;
-      userId: number;
       liked: boolean;
     } = req.body;
     const type = liked ? "LIKE" : "DISLIKE";

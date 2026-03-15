@@ -1,15 +1,16 @@
 import { Leaderboard } from "@/components/LeaderBoard";
-import {
-  getLeastPopularPosts,
-  getMostPopularPosts,
-  Posts,
-} from "@/service/posts";
+import { usePostContext } from "@/components/PostProvider";
+import { Posts } from "@/service/posts";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuthContext } from "../AuthProvider";
 
-//TODO: store in redis cache and open ws to update in realtime
+//TODO: store in redis cache and open ws to update in realtime?
+//TODO: refresh results after liking, move this to PostProvider
 export default function LeaderBoardView() {
+  const { service } = usePostContext();
+  const { isAuthenticated } = useAuthContext();
   const [mostLiked, setMostLiked] = useState<Posts | null>(null);
   const [leastLiked, setLeastLiked] = useState<Posts | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -20,7 +21,7 @@ export default function LeaderBoardView() {
       try {
         console.info("Fetching leaderboard...");
         setIsLoading(true);
-        const result = await getMostPopularPosts();
+        const result = await service.getMostPopularPosts();
         setMostLiked(result);
         setIsLoading(false);
       } catch (e) {
@@ -29,15 +30,15 @@ export default function LeaderBoardView() {
         setIsLoading(false);
       }
     }
-    if (mostLiked === null) fetchPosts();
-  }, [mostLiked]);
+    if (isAuthenticated && mostLiked === null) fetchPosts();
+  }, [mostLiked, isAuthenticated, service]);
 
   useEffect(() => {
     async function fetchPosts() {
       try {
         console.info("Fetching leaderboard...");
         setIsLoading(true);
-        const result = await getLeastPopularPosts();
+        const result = await service.getLeastPopularPosts();
         setLeastLiked(result);
         setIsLoading(false);
       } catch (e) {
@@ -46,8 +47,8 @@ export default function LeaderBoardView() {
         setIsLoading(false);
       }
     }
-    if (leastLiked === null) fetchPosts();
-  }, [leastLiked]);
+    if (isAuthenticated && leastLiked === null) fetchPosts();
+  }, [leastLiked, isAuthenticated, service]);
 
   return (
     <View style={styles.container}>

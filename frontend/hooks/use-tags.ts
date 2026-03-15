@@ -1,4 +1,6 @@
-import { getTags, Tag } from "@/service/posts";
+import { useAuthContext } from "@/app/AuthProvider";
+import { usePostContext } from "@/components/PostProvider";
+import { Tag } from "@/service/posts";
 import { useEffect, useState } from "react";
 
 export default function useTags() {
@@ -6,12 +8,16 @@ export default function useTags() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
+  const isAuthenticated = useAuthContext();
+
+  const { service } = usePostContext();
+
   useEffect(() => {
     async function fetchTags() {
       try {
         console.info("Fetching tags...");
         setIsLoading(true);
-        const result = await getTags();
+        const result = await service.getTags();
         setTags(result);
         setIsLoading(false);
       } catch (e) {
@@ -20,8 +26,8 @@ export default function useTags() {
         setIsLoading(false);
       }
     }
-    if (tags === null) fetchTags();
-  }, [tags]);
+    if (isAuthenticated && tags === null) fetchTags();
+  }, [tags, isAuthenticated, service]);
 
   return { tags, isLoading, error };
 }

@@ -1,14 +1,17 @@
 import AccountProfile from "@/components/Profile";
-import { getUserProfile, UserProfile } from "@/service/user";
-import { useCallback, useEffect, useState } from "react";
+import { UserProfile, UserService } from "@/service/user";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { userId } from "../_layout";
+import { useAuthContext } from "../AuthProvider";
 
-export default function LeaderBoardView() {
+export default function Profile() {
+  const { apiClient, isAuthenticated } = useAuthContext();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
+
+  const service = useMemo(() => new UserService(apiClient), [apiClient]);
 
   const refreshData = useCallback(() => {
     setUser(null);
@@ -19,7 +22,7 @@ export default function LeaderBoardView() {
       try {
         console.info("Fetching user profile...");
         setIsLoading(true);
-        const result = await getUserProfile(userId);
+        const result = await service.getUserProfile();
         setUser(result);
         setIsLoading(false);
       } catch (e) {
@@ -28,8 +31,8 @@ export default function LeaderBoardView() {
         setIsLoading(false);
       }
     }
-    if (user === null) fetchUser();
-  }, [user]);
+    if (isAuthenticated && user === null) fetchUser();
+  }, [user, isAuthenticated, service]);
 
   return (
     <View style={styles.container}>
@@ -43,7 +46,9 @@ export default function LeaderBoardView() {
           <ActivityIndicator size="large" color="#0000ff" />
         </SafeAreaView>
       )}
-      {!error && user && <AccountProfile {...user} refreshData={refreshData} />}
+      {!error && user && (
+        <AccountProfile {...user} service={service} refreshData={refreshData} />
+      )}
     </View>
   );
 }
