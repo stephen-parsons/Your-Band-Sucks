@@ -15,7 +15,6 @@ import { usePostContext } from "../PostProvider";
 interface LikeBarProps {
   like: Post["like"];
   songId: Post["id"];
-  userId: number;
 }
 
 interface LikeButtonProps {

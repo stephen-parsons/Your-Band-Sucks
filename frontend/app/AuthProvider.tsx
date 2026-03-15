@@ -31,12 +31,24 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 
   const apiClient = useCallback(
     async (input: string | URL | Request, options: RequestInit = {}) => {
+      let currentSession = session;
+      //check if access token needs to be refreshed
+      //this is not programatically done amplify unless fetchAuthSession is invoked
+      if (
+        session?.credentials?.expiration &&
+        session.credentials.expiration < new Date()
+      ) {
+        console.info("Refreshing auth tokens...");
+        const newSession = await refreshTokens();
+        currentSession = newSession;
+      }
+
       const headerObj: HeadersInit = {
         "Content-Type": "application/json",
       };
-      if (session && session.tokens) {
+      if (currentSession && currentSession.tokens) {
         headerObj["Authorization"] =
-          `Bearer ${session.tokens.accessToken.toString()}`;
+          `Bearer ${currentSession.tokens.accessToken.toString()}`;
       }
       const config = {
         ...options,
@@ -70,3 +82,7 @@ export const useAuthContext = (): IAuthContext => {
 
   return context;
 };
+
+async function refreshTokens() {
+  return await fetchAuthSession({ forceRefresh: true });
+}
