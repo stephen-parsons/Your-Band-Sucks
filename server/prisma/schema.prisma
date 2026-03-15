@@ -28,6 +28,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime?  @updatedAt
   avatar    String     @default("") //object key in s3
+  cognitoId String     @default("") //user id (sub) in aws cognito pool
 }
 
 model Song {    

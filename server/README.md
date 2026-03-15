@@ -27,6 +27,15 @@ AWS access is needed for certain operations, like generating pre-signed urls. Co
 3. Run `aws sso login --profile {your-profile}` in order to login through the aws portal. Alternatively modify `~/.aws/config` to use a default acccount.
 4. Run `aws sts get-caller-identity` to verify your sso was successful.
 
+### Env variables
+
+The following nev variables are needed for Coginito. Add them to your .env file:
+
+```
+COGNITO_USER_POOL_ID="pool-id"
+COGNITO_CLIENT_ID="client-id"
+```
+
 ## Troubleshooting
 
 If unable to run `psql`, you may need to symlink the command to your homebrew installation. Add `export PATH="/opt/homebrew/opt/postgresql@18/bin:$PATH"` to your bashrc or zshrc and source the changes. Make sure to specify the correct postgresql version you installed form Homebrew.

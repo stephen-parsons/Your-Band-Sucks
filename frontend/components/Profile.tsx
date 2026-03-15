@@ -173,7 +173,15 @@ const AccountProfile = ({
         </Animated.View>
       </Animated.View>
 
-      <Text style={styles.uploadsHeader}>Your recent uploads:</Text>
+      <View style={styles.row}>
+        <Text style={styles.uploadsHeader}>Your recent uploads:</Text>
+        <MaterialCommunityIcons
+          style={styles.uploadsHeaderIcon}
+          name={"heart"}
+          size={20}
+          color={"red"}
+        />
+      </View>
 
       {/* Items List */}
       <Animated.FlatList
@@ -392,10 +400,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   uploadsHeader: {
+    flex: 1,
     padding: 5,
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  uploadsHeaderIcon: {
+    paddingRight: 18,
   },
   previewImage: {
     height: 200,

@@ -66,8 +66,8 @@ export async function getLeastPopularPosts() {
 
 //todo: fetch based on userId to get personalized feed
 //todo: pagination
-export async function getPosts() {
-  const result = await fetch(`${SERVER_URL}/posts`);
+export async function getPosts(client: typeof fetch) {
+  const result = await client(`${SERVER_URL}/posts`);
   return (await result.json()) as Posts;
 }
 

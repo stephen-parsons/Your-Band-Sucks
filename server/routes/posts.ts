@@ -1,9 +1,11 @@
 // server/routes/posts.ts
 
 import express from "express";
+import { AuthenticatedRequest } from "..";
 import config from "../config";
 import { SongCreateInput } from "../generated/prisma/models";
 import { prisma } from "../prisma";
+import { verifyAccessToken } from "../service/CognitoService";
 import {
   createPresignedUrlWithClient,
   generateS3Url,
@@ -11,10 +13,35 @@ import {
 
 const router = express.Router();
 
-const userId = 2;
-//TODO: for user queries, get avatar
+router.use(async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send("Unauthorized: Missing token");
+  }
 
-router.get("/", async (req, res) => {
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const result = await verifyAccessToken(token);
+    const user = await prisma.user.findFirst({
+      where: {
+        cognitoId: result.sub,
+      },
+      select: {
+        id: true,
+      },
+    });
+    if (!user) throw new Error("No user found!!!");
+    //add the queried userId to the req object
+    (req as AuthenticatedRequest).userId = user.id;
+    console.log("Found user: " + user.id);
+    next(); // Token is valid, proceed to the next handler
+  } catch (error: any) {
+    res.status(401).send(error.message);
+  }
+});
+
+router.get("/", async (req: AuthenticatedRequest, res) => {
   //todo: get presignedUrls for audio streaming?
   //or make bucket public
   try {
@@ -22,7 +49,7 @@ router.get("/", async (req, res) => {
       include: {
         likes: {
           where: {
-            userId,
+            userId: req.userId,
           },
           select: { type: true },
         },
@@ -32,7 +59,7 @@ router.get("/", async (req, res) => {
       omit: { userId: true, createdAt: true, updatedAt: true },
       where: {
         userId: {
-          not: userId,
+          not: req.userId,
         },
       },
     });

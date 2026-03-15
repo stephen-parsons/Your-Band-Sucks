@@ -1,3 +1,4 @@
+import { useAuthContext } from "@/app/AuthProvider";
 import { getPosts, Posts } from "@/service/posts";
 import {
   createContext,
@@ -27,6 +28,7 @@ const PostContext = createContext<IPostContext>({
 });
 
 export function PostContextProvider({ children }: PropsWithChildren) {
+  const { isAuthenticated, apiClient } = useAuthContext();
   const [posts, setPosts] = useState<IPostContext["posts"]>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
@@ -36,7 +38,7 @@ export function PostContextProvider({ children }: PropsWithChildren) {
       try {
         console.info("Fetching posts...");
         setIsLoading(true);
-        const result = await getPosts();
+        const result = await getPosts(apiClient);
         setPosts(result);
         setIsLoading(false);
       } catch (e) {
@@ -45,8 +47,8 @@ export function PostContextProvider({ children }: PropsWithChildren) {
         setIsLoading(false);
       }
     }
-    if (posts === null) fetchFeed();
-  }, [posts]);
+    if (isAuthenticated && posts === null) fetchFeed();
+  }, [posts, isAuthenticated]);
 
   return (
     <PostContext.Provider value={{ posts, isLoading, error }}>
