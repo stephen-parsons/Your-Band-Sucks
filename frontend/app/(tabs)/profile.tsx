@@ -2,6 +2,7 @@ import AccountProfile from "@/components/Profile";
 import { UserProfile, UserService } from "@/service/user";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthContext } from "../AuthProvider";
 
@@ -44,6 +45,11 @@ export default function Profile() {
       {isLoading && (
         <SafeAreaView style={[styles.container, styles.horizontal]}>
           <ActivityIndicator size="large" color="#0000ff" />
+          <Animated.Image
+            entering={FadeIn}
+            style={styles.gif}
+            source={require("../../assets/images/beavis_butthead.gif")}
+          />
         </SafeAreaView>
       )}
       {!error && user && (
@@ -55,12 +61,13 @@ export default function Profile() {
 
 const styles = StyleSheet.create({
   container: {
+    height: "100%",
     padding: 20,
     backgroundColor: "#000",
   },
   horizontal: {
-    flexDirection: "row",
-    justifyContent: "space-around",
+    flexDirection: "column",
     padding: 10,
   },
+  gif: { height: 280, width: "auto", marginTop: 200 },
 });

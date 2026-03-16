@@ -16,7 +16,7 @@ export function Header({
   signOut: shouldSignOut,
 }: {
   text: string;
-  signOut: boolean;
+  signOut?: boolean;
 }) {
   const [isModalVisible, setModalVisible] = useState(false);
   return (

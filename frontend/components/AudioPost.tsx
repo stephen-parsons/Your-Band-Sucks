@@ -57,8 +57,8 @@ const AudioPostComponent: React.FC<Post> = ({
    *
    * Important: Subtract all padding and width audio playback markers
    **/
-  const progressContainerWidth = width - 128;
-  const progressContainerStartPosition = 64;
+  const progressContainerWidth = width - 164;
+  const progressContainerStartPosition = 84;
   const progressContainerEndPosition = progressContainerWidth;
 
   //Gesture for handling seeking
