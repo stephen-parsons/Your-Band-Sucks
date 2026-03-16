@@ -33,10 +33,12 @@ export default function AuthProvider({ children }: PropsWithChildren) {
     async (input: string | URL | Request, options: RequestInit = {}) => {
       let currentSession = session;
       //check if access token needs to be refreshed
-      //this is not programatically done amplify unless fetchAuthSession is invoked
+      //multipy the access token exp claim by 1000 to get epoch time and create new Date
+      //compare this with curren time.
+      //this check is not programatically done amplify unless fetchAuthSession is invoked
       if (
-        session?.credentials?.expiration &&
-        session.credentials.expiration < new Date()
+        session?.tokens?.accessToken.payload.exp &&
+        new Date(session?.tokens?.accessToken.payload.exp * 1000) < new Date()
       ) {
         console.info("Refreshing auth tokens...");
         const newSession = await refreshTokens();

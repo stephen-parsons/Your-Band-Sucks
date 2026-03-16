@@ -135,7 +135,7 @@ const AccountProfile = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header text={"Looking good!"} />
+      <Header text={"Looking good!"} signOut />
       {/* Profile Header */}
       <Animated.View
         entering={FadeInDown.duration(800).springify()}
