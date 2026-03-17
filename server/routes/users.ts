@@ -6,7 +6,10 @@ import { cognitoAuthorizer } from "../authorizer";
 import config from "../config";
 import { prisma } from "../prisma";
 import { IdTokenClaimsPayload, verifyIdToken } from "../service/CognitoService";
-import { createPresignedUrlWithClient } from "../service/S3Service";
+import {
+  createPresignedUrlWithClientPUT,
+  deleteS3Object,
+} from "../service/S3Service";
 import { mapTagResults } from "../util/tags";
 
 const router = express.Router();
@@ -49,6 +52,7 @@ router.get("/current", async (req: AuthenticatedRequest, res) => {
         description: true,
         _count: true,
       },
+      take: 10,
     });
     const result = { ...user, tags: mapTagResults(userTags) };
     console.info("USER", result);
@@ -102,7 +106,7 @@ router.post(
       } = req.body;
       const key = `${userId}/${filename}`;
       const bucket = config.aws.bucket.images;
-      const url = await createPresignedUrlWithClient({
+      const url = await createPresignedUrlWithClientPUT({
         bucket,
         key,
         contentType,
@@ -141,6 +145,50 @@ router.post("/avatar/update", async (req: AuthenticatedRequest, res) => {
     });
     console.info("AVATAR", nawAvatar);
     res.status(200).json(nawAvatar);
+  } catch (e: any) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to update avatar" });
+  }
+});
+
+/**
+ * Deletes the current avatar for a user
+ */
+router.post("/avatar/update/delete", async (req: AuthenticatedRequest, res) => {
+  const userId = req.userId!;
+  try {
+    const currentUser = await prisma.user.findFirst({
+      where: {
+        id: userId,
+      },
+      select: {
+        avatar: true,
+      },
+    });
+
+    if (!currentUser?.avatar)
+      throw new Error("User doesn't have an avatar to delete!");
+
+    await deleteS3Object({
+      bucket: config.aws.bucket.images,
+      key: currentUser?.avatar,
+    });
+
+    const newUser = await prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        avatar: {
+          set: undefined,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+    console.info("Avatar deleted for: ", newUser);
+    res.status(200).json(newUser);
   } catch (e: any) {
     console.error(e);
     res.status(500).json({ error: "Failed to update avatar" });

@@ -1,10 +1,13 @@
 // server/routes/tags.ts
 
 import express from "express";
+import { cognitoAuthorizer } from "../authorizer";
 import { prisma } from "../prisma";
 import { mapTagResults } from "../util/tags";
 
 const router = express.Router();
+
+router.use(cognitoAuthorizer);
 
 router.get("/", async (req, res) => {
   try {

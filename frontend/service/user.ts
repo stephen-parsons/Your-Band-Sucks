@@ -92,6 +92,12 @@ export class UserService {
     }
     return await res.json();
   }
+
+  public async deleteAvatar() {
+    return await this.apiClient(`${SERVER_URL}/avatar/update/delete`, {
+      method: "POST",
+    });
+  }
 }
 
 export async function uploadToS3({

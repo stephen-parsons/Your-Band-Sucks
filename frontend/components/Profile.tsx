@@ -1,6 +1,6 @@
 import { AnimatedCount } from "@/components/ui/AnimtedCount";
 import { uploadToS3, UserProfile, UserService } from "@/service/user";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import React, { ReactNode, useCallback, useState } from "react";
 import {
@@ -8,7 +8,6 @@ import {
   Image,
   Modal,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -144,7 +143,20 @@ const AccountProfile = ({
       >
         <View style={styles.avatarColumn}>
           {avatarKey ? (
-            <S3Image source={avatarKey} style={styles.avatar} />
+            <View style={styles.imageContainer}>
+              <S3Image source={avatarKey} style={styles.avatar} />
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setModalVisible(true)}
+              >
+                <FontAwesome
+                  style={styles.editIcon}
+                  name="pencil-square-o"
+                  size={24}
+                  color="black"
+                />
+              </TouchableOpacity>
+            </View>
           ) : (
             <TouchableOpacity
               style={styles.placeholder}
@@ -260,14 +272,14 @@ const AccountProfile = ({
             )}
 
             <View style={styles.formPlaceholder}>
-              <Pressable
+              <TouchableOpacity
                 onPress={pickFile}
                 style={[styles.uploadButton, styles.paddedButton]}
               >
                 <Text style={styles.uploadButtonText}>
                   {!file ? "Select image" : "Choose new image"}
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
 
             {file && (
@@ -350,8 +362,11 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
+    opacity: 0.92,
     width: "100%",
-    backgroundColor: "lightgrey",
+    borderWidth: 2,
+    borderColor: "antiquewhite",
+    backgroundColor: "black",
     borderRadius: 20,
     padding: 24,
     shadowColor: "#000",
@@ -367,12 +382,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
+    color: "white",
     fontSize: 18,
     fontWeight: "bold",
   },
   formPlaceholder: {
     height: 120,
-    backgroundColor: "lightgrey",
+    backgroundColor: "black",
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
@@ -417,6 +433,15 @@ const styles = StyleSheet.create({
     height: 200,
     width: 200,
     margin: "auto",
+  },
+  imageContainer: {
+    position: "relative",
+  },
+  editIcon: {
+    color: "antiquewhite",
+    position: "absolute",
+    right: 0,
+    bottom: 0,
   },
 });
 
