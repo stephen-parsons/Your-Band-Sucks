@@ -1,18 +1,19 @@
 import Autocomplete from "@/components/AutoComplete";
 import { usePostContext } from "@/components/PostProvider";
+import { ThemedText } from "@/components/themed-text";
 import { Header } from "@/components/ui/Header";
 import Tag from "@/components/ui/Tag";
 import useTags from "@/hooks/use-tags";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { uploadToS3 } from "@/service/posts";
 import * as DocumentPicker from "expo-document-picker";
 import React, { Dispatch, SetStateAction, useCallback, useState } from "react";
 import {
   Alert,
   Platform,
-  Pressable,
   StyleSheet,
-  Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -20,6 +21,10 @@ import {
  * Upload component
  */
 const S3UploadForm: React.FC = () => {
+  const textInputBackgroundColor = useThemeColor(
+    {},
+    "textInputBackgroundColor",
+  );
   const { service } = usePostContext();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -114,15 +119,19 @@ const S3UploadForm: React.FC = () => {
   return (
     <View style={styles.container}>
       <Header text={"Show us what you got"} />
-      <Text style={styles.label}>Title</Text>
-      <TextInput style={styles.input} value={title} onChangeText={setTitle} />
-      <Text style={styles.label}>Description</Text>
+      <ThemedText style={styles.label}>Title</ThemedText>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: textInputBackgroundColor }]}
+        value={title}
+        onChangeText={setTitle}
+      />
+      <ThemedText style={styles.label}>Description</ThemedText>
+      <TextInput
+        style={[styles.input, { backgroundColor: textInputBackgroundColor }]}
         value={description}
         onChangeText={setDescription}
       />
-      <Text style={styles.label}>Tags</Text>
+      <ThemedText style={styles.label}>Tags</ThemedText>
       <Autocomplete
         placeholder={"Add tags to share your song!"}
         options={tagList?.map((item) => item.description) || []}
@@ -137,25 +146,25 @@ const S3UploadForm: React.FC = () => {
       />
       <Tags setTags={setTags} tags={tags} />
       <View style={styles.fileRow}>
-        <Pressable
+        <TouchableOpacity
           onPress={pickFile}
           style={[styles.button, styles.paddedButton]}
         >
-          <Text style={styles.buttonText}>Select File</Text>
-        </Pressable>
-        <Text style={styles.fileName}>
+          <ThemedText style={styles.buttonText}>Select File</ThemedText>
+        </TouchableOpacity>
+        <ThemedText style={styles.fileName}>
           {file ? file.name : "No file selected"}
-        </Text>
+        </ThemedText>
       </View>
-      <Pressable
+      <TouchableOpacity
         onPress={uploadFile}
         disabled={uploading}
         style={styles.button}
       >
-        <Text style={styles.buttonText}>
+        <ThemedText style={styles.buttonText}>
           {uploading ? "Uploading..." : "Upload"}
-        </Text>
-      </Pressable>
+        </ThemedText>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -199,7 +208,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   input: {
-    backgroundColor: "white",
     padding: 8,
     marginTop: 5,
     borderRadius: 25,
@@ -210,7 +218,6 @@ const styles = StyleSheet.create({
     marginVertical: 15,
   },
   fileName: {
-    color: "white",
     marginLeft: 10,
     flexShrink: 1,
   },
@@ -221,7 +228,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: {
-    color: "#fff",
     fontWeight: "bold",
   },
   paddedButton: {
@@ -255,12 +261,5 @@ const styles = StyleSheet.create({
   xIcon: {
     marginLeft: 4,
     marginTop: 1,
-  },
-  autoCompleteContainer: {
-    backgroundColor: "white",
-    borderRadius: 25,
-    height: 32.5,
-    padding: 8,
-    marginTop: 5,
   },
 });

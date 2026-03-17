@@ -1,3 +1,4 @@
+import { useThemeColor } from "@/hooks/use-theme-color";
 import Fuse from "fuse.js";
 import React, { useMemo, useState } from "react";
 import {
@@ -32,6 +33,11 @@ export default function Autocomplete({
   onSelect,
   maxResults = 8,
 }: Props) {
+  const textInputBackgroundColor = useThemeColor(
+    {},
+    "textInputBackgroundColor",
+  );
+
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
 
@@ -117,7 +123,7 @@ export default function Autocomplete({
         value={query}
         placeholder={placeholder}
         placeholderTextColor={"gray"}
-        style={styles.input}
+        style={[styles.input, { backgroundColor: textInputBackgroundColor }]}
         onFocus={openDropdown}
         onBlur={handleBlur}
         onChangeText={(text) => {
@@ -135,7 +141,10 @@ export default function Autocomplete({
             renderItem={({ item, index }) => {
               return (
                 <Pressable
-                  style={styles.item}
+                  style={[
+                    styles.item,
+                    { backgroundColor: textInputBackgroundColor },
+                  ]}
                   onPress={() => {
                     if (item === "Add new tag") return handleSelect(query);
                     handleSelect(results[index]);

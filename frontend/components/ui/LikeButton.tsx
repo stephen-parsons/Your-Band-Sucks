@@ -1,7 +1,7 @@
 import { Post } from "@/service/posts";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { memo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -11,6 +11,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { usePostContext } from "../PostProvider";
+import { ThemedText } from "../themed-text";
 
 interface LikeBarProps {
   like: Post["like"];
@@ -110,10 +111,10 @@ function LikeBarComponent({ songId, like }: LikeBarProps) {
           voted={voted}
           setVoted={setVoted}
         />
-        <Text style={styles.likeText}>This rules!</Text>
+        <ThemedText style={styles.likeText}>This rules!</ThemedText>
       </View>
       <View style={styles.likeView}>
-        <Text style={styles.likeText}>idk, kinda whack...</Text>
+        <ThemedText style={styles.likeText}>idk, kinda whack...</ThemedText>
         <LikeButton
           songId={songId}
           variant="dislike"
@@ -140,7 +141,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   likeText: {
-    color: "white",
     padding: 5,
   },
 });

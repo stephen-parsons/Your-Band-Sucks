@@ -51,26 +51,27 @@ export default function LeaderBoardView() {
   }, [leastLiked, isAuthenticated, service]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {error && (
         <Text style={{ fontSize: 44, color: "white", textAlign: "center" }}>
           {error?.message}
         </Text>
       )}
       {isLoading && (
-        <SafeAreaView style={[styles.container, styles.horizontal]}>
+        <View style={styles.horizontal}>
           <ActivityIndicator size="large" color="#0000ff" />
-        </SafeAreaView>
+        </View>
       )}
       {!error && mostLiked && leastLiked && (
         <Leaderboard mostLiked={mostLiked} leastLiked={leastLiked} />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    height: "100%",
     padding: 20,
     backgroundColor: "#000",
   },

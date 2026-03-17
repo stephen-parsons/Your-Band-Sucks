@@ -9,7 +9,6 @@ import {
   Modal,
   Platform,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -21,6 +20,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import S3Image from "./S3Image";
+import { ThemedText } from "./themed-text";
 import { Header } from "./ui/Header";
 import Tag from "./ui/Tag";
 
@@ -174,13 +174,19 @@ const AccountProfile = ({
           entering={FadeInRight.delay(300).duration(600)}
           style={styles.infoColumn}
         >
-          <Text style={styles.usernameText}>{username || "New User"}</Text>
-          <Text style={styles.emailText}>{email || "No email provided"}</Text>
+          <ThemedText style={styles.usernameText}>
+            {username || "New User"}
+          </ThemedText>
+          <ThemedText style={styles.emailText}>
+            {email || "No email provided"}
+          </ThemedText>
         </Animated.View>
       </Animated.View>
 
       <View style={styles.row}>
-        <Text style={styles.uploadsHeader}>Your recent uploads:</Text>
+        <ThemedText style={styles.uploadsHeader}>
+          Your recent uploads:
+        </ThemedText>
         <MaterialCommunityIcons
           style={styles.uploadsHeaderIcon}
           name={"heart"}
@@ -195,7 +201,7 @@ const AccountProfile = ({
         renderItem={({ index, item }) => (
           <ListItem
             index={index}
-            item={<Text style={styles.cell}>{item.title}</Text>}
+            item={<ThemedText style={styles.cell}>{item.title}</ThemedText>}
             count={item.likeCount}
           />
         )}
@@ -203,16 +209,16 @@ const AccountProfile = ({
         contentContainerStyle={styles.listPadding}
         itemLayoutAnimation={LinearTransition.springify()} // Animate list changes
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No items found.</Text>
+          <ThemedText style={styles.emptyText}>No items found.</ThemedText>
         }
       />
 
       {tags.length > 0 && (
         <>
           <View style={styles.row}>
-            <Text style={styles.uploadsHeader}>
+            <ThemedText style={styles.uploadsHeader}>
               Some of your favorite tags:
-            </Text>
+            </ThemedText>
             <MaterialCommunityIcons
               style={[styles.uploadsHeaderIcon, { marginTop: 4 }]}
               name={"pound"}
@@ -258,7 +264,7 @@ const AccountProfile = ({
         <View style={styles.modalOverlay}>
           <Animated.View entering={ZoomIn} style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Update Photo</Text>
+              <ThemedText style={styles.modalTitle}>Update Photo</ThemedText>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <MaterialCommunityIcons name="close" color="#333" size={24} />
               </TouchableOpacity>
@@ -276,9 +282,9 @@ const AccountProfile = ({
                 onPress={pickFile}
                 style={[styles.uploadButton, styles.paddedButton]}
               >
-                <Text style={styles.uploadButtonText}>
+                <ThemedText style={styles.uploadButtonText}>
                   {!file ? "Select image" : "Choose new image"}
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
             </View>
 
@@ -288,9 +294,9 @@ const AccountProfile = ({
                 onPress={uploadImageFile}
                 disabled={uploading}
               >
-                <Text style={styles.uploadButtonText}>
+                <ThemedText style={styles.uploadButtonText}>
                   {uploading ? "Uploading to the world..." : "Send it!"}
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
             )}
           </Animated.View>
@@ -339,7 +345,6 @@ const styles = StyleSheet.create({
   usernameText: {
     fontSize: 22,
     fontWeight: "700",
-    color: "lightgray",
   },
   emailText: {
     fontSize: 15,
@@ -382,7 +387,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    color: "white",
     fontSize: 18,
     fontWeight: "bold",
   },
@@ -405,12 +409,10 @@ const styles = StyleSheet.create({
     paddingRight: 20,
   },
   uploadButtonText: {
-    color: "white",
     fontWeight: "600",
     fontSize: 16,
   },
   cell: {
-    color: "white",
     flex: 2,
     padding: 8,
     fontSize: 12,
@@ -422,7 +424,6 @@ const styles = StyleSheet.create({
   uploadsHeader: {
     flex: 1,
     padding: 5,
-    color: "white",
     fontSize: 18,
     fontWeight: "bold",
   },

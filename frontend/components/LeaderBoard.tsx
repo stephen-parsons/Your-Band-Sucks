@@ -1,6 +1,6 @@
 import { Post, Posts } from "@/service/posts";
 import React, { useEffect } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -8,7 +8,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import S3Image from "./S3Image";
+import { ThemedText } from "./themed-text";
 import { AnimatedCount } from "./ui/AnimtedCount";
+import { Header } from "./ui/Header";
 
 type TableProps = {
   title: string;
@@ -61,19 +63,23 @@ const PodiumBlock = ({
           <S3Image source={item.user.avatar} style={styles.avatar} />
         ) : (
           <View style={styles.avatarFallback}>
-            <Text style={styles.avatarLetter}>
+            <ThemedText style={styles.avatarLetter}>
               {item.user.name[0].toUpperCase()}
-            </Text>
+            </ThemedText>
           </View>
         )}
       </View>
 
-      <Text adjustsFontSizeToFit numberOfLines={1} style={styles.podiumUser}>
+      <ThemedText
+        adjustsFontSizeToFit
+        numberOfLines={1}
+        style={styles.podiumUser}
+      >
         {item.user.name.split(" ")[0]}
-      </Text>
+      </ThemedText>
 
       <AnimatedCount value={item.likeCount} />
-      <Text style={styles.podiumMedal}>{medal(rank)}</Text>
+      <ThemedText style={styles.podiumMedal}>{medal(rank)}</ThemedText>
     </Animated.View>
   );
 };
@@ -104,17 +110,17 @@ const Table: React.FC<TableProps> = ({ title, data }) => {
 
   return (
     <ScrollView style={styles.tableContainer}>
-      <Text style={styles.tableTitle}>{title}</Text>
+      <ThemedText style={styles.tableTitle}>{title}</ThemedText>
 
       <Podium data={rows} />
 
       <View style={styles.table}>
         {/* Header */}
         {/* <View style={[styles.row, styles.headerRow]}>
-          <Text style={[styles.rankCell, styles.header]}>#</Text>
-          <Text style={[styles.cell, styles.header]}>User</Text>
-          <Text style={[styles.cell, styles.header]}>Title</Text>
-          <Text style={[styles.countCell, styles.header]}>Count</Text>
+          <ThemedText style={[styles.rankCell, styles.header]}>#</ThemedText>
+          <ThemedText style={[styles.cell, styles.header]}>User</ThemedText>
+          <ThemedText style={[styles.cell, styles.header]}>Title</ThemedText>
+          <ThemedText style={[styles.countCell, styles.header]}>Count</ThemedText>
         </View> */}
 
         {/* Rows */}
@@ -123,9 +129,9 @@ const Table: React.FC<TableProps> = ({ title, data }) => {
 
           return (
             <View key={index} style={styles.row}>
-              <Text style={styles.rankCell}>{medal(rank)}</Text>
-              <Text style={styles.cell}>{item.user.name}</Text>
-              <Text style={styles.cell}>{item.title}</Text>
+              <ThemedText style={styles.rankCell}>{medal(rank)}</ThemedText>
+              <ThemedText style={styles.cell}>{item.user.name}</ThemedText>
+              <ThemedText style={styles.cell}>{item.title}</ThemedText>
               <AnimatedCount value={item.likeCount} />
             </View>
           );
@@ -141,6 +147,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 }) => {
   return (
     <ScrollView style={styles.container}>
+      <Header text="Climb the ladder" />
       <Table title="The most popular songs on the internet!" data={mostLiked} />
       <Table title="The worst songs we've ever heard...." data={leastLiked} />
     </ScrollView>
@@ -150,7 +157,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
   },
 
   /* PODIUM */
@@ -168,7 +174,7 @@ const styles = StyleSheet.create({
   podiumBlock: {
     width: 110,
     borderRadius: 12,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#1a1a1a",
     alignItems: "center",
     justifyContent: "flex-end",
     paddingBottom: 10,
@@ -223,8 +229,7 @@ const styles = StyleSheet.create({
   },
 
   tableTitle: {
-    color: "white",
-    fontSize: 20,
+    fontSize: 12,
     fontWeight: "bold",
     marginBottom: 10,
   },
@@ -259,7 +264,6 @@ const styles = StyleSheet.create({
   },
 
   cell: {
-    color: "white",
     flex: 2,
     padding: 8,
     fontSize: 12,

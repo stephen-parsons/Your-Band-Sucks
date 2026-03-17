@@ -1,12 +1,12 @@
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { Post } from "@/service/posts";
 import { Link, useIsFocused } from "@react-navigation/native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import React, { memo, useCallback, useEffect, useMemo } from "react";
+import React, { memo, useCallback, useEffect } from "react";
 import {
   Dimensions,
   Image,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -18,6 +18,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useAudioManager } from "./AudioManager";
 import S3Image from "./S3Image";
+import { ThemedText } from "./themed-text";
 import { LikeBar } from "./ui/LikeButton";
 
 const { width, height } = Dimensions.get("window");
@@ -37,7 +38,7 @@ const AudioPostComponent: React.FC<Post> = ({
   const { setActivePlayer, activePlayer } = useAudioManager();
   const isFocused = useIsFocused();
 
-  const source = useMemo(() => ({ uri: url }), [url]);
+  const thumbColor = useThemeColor({}, "text");
 
   const player = useAudioPlayer(url);
   const status = useAudioPlayerStatus(player);
@@ -141,7 +142,7 @@ const AudioPostComponent: React.FC<Post> = ({
     <View id={"audio-post-" + id} style={styles.container}>
       <View style={styles.header}>
         {avatar && <S3Image source={avatar} style={styles.avatar} />}
-        <Text style={styles.title}>{title}</Text>
+        <ThemedText style={styles.title}>{title}</ThemedText>
       </View>
 
       {image && <Image source={{ uri: image }} style={styles.image} />}
@@ -149,35 +150,41 @@ const AudioPostComponent: React.FC<Post> = ({
       <View style={styles.audioContainer}>
         <View>
           <TouchableOpacity onPress={handlePlayPause} style={styles.playButton}>
-            <Text style={styles.playText}>
+            <ThemedText style={styles.playText}>
               {player.isLoaded
                 ? player.playing
                   ? "Pause"
                   : "Play"
                 : "Loading..."}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         </View>
 
         <View style={styles.progressContainer}>
-          <Text style={styles.time}>{formatTime(position)}</Text>
+          <ThemedText style={styles.time}>{formatTime(position)}</ThemedText>
 
           <GestureDetector gesture={panGesture}>
             <View style={styles.progressBar}>
               <Animated.View
                 style={[styles.progress, { width: `${progressBarWidth}%` }]}
               />
-              <Animated.View style={[styles.thumb, thumbStyle]} />
+              <Animated.View
+                style={[
+                  { backgroundColor: thumbColor },
+                  styles.thumb,
+                  thumbStyle,
+                ]}
+              />
             </View>
           </GestureDetector>
 
-          <Text style={styles.time}>{formatTime(duration)}</Text>
+          <ThemedText style={styles.time}>{formatTime(duration)}</ThemedText>
         </View>
       </View>
       <LikeBar songId={id} like={like} />
 
-      <Text style={styles.description}>{description}</Text>
-      <Text style={styles.userName}>Posted by: {name}</Text>
+      <ThemedText style={styles.description}>{description}</ThemedText>
+      <ThemedText style={styles.userName}>Posted by: {name}</ThemedText>
 
       <View style={styles.tagsContainer}>
         {tags.map((tag, index) => (
@@ -216,7 +223,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   title: {
-    color: "#fff",
     fontWeight: "bold",
   },
   image: {
@@ -234,7 +240,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   playText: {
-    color: "#fff",
     fontWeight: "bold",
   },
   progressContainer: {
@@ -265,10 +270,8 @@ const styles = StyleSheet.create({
     width: THUMB_SIZE,
     height: THUMB_SIZE,
     borderRadius: THUMB_SIZE / 2,
-    backgroundColor: "#fff",
   },
   description: {
-    color: "#fff",
     paddingHorizontal: 16,
     paddingTop: 8,
   },

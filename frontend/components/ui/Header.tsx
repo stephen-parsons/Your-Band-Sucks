@@ -1,3 +1,4 @@
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons";
 import { signOut } from "aws-amplify/auth";
 import { useState } from "react";
@@ -10,6 +11,7 @@ import {
   View,
 } from "react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
+import { ThemedText } from "../themed-text";
 
 export function Header({
   text,
@@ -18,14 +20,14 @@ export function Header({
   text: string;
   signOut?: boolean;
 }) {
+  const signoutButtonColor = useThemeColor({}, "text");
   const [isModalVisible, setModalVisible] = useState(false);
   return (
     <>
       <View style={{ position: "relative", justifyContent: "center" }}>
-        <Text
+        <ThemedText
           style={{
             fontSize: 20,
-            color: "white",
             textAlign: "center",
             backgroundColor: "black",
             padding: 10,
@@ -33,7 +35,7 @@ export function Header({
           }}
         >
           {text}
-        </Text>
+        </ThemedText>
         {shouldSignOut && (
           <Pressable
             style={{ position: "absolute", left: "90%" }}
@@ -41,7 +43,11 @@ export function Header({
               setModalVisible(true);
             }}
           >
-            <FontAwesome5 name="sign-out-alt" size={24} color="white" />
+            <FontAwesome5
+              name="sign-out-alt"
+              size={24}
+              color={signoutButtonColor}
+            />
           </Pressable>
         )}
       </View>
