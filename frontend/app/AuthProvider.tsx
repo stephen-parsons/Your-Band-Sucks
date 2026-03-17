@@ -29,6 +29,10 @@ export default function AuthProvider({ children }: PropsWithChildren) {
     if (session) setSession(session);
   }
 
+  const getIdToken = useCallback(() => {
+    return session?.tokens?.idToken?.toString();
+  }, [session]);
+
   const apiClient = useCallback(
     async (input: string | URL | Request, options: RequestInit = {}) => {
       let currentSession = session;

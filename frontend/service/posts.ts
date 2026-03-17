@@ -35,6 +35,9 @@ export interface Tag {
 
 export interface Post {
   id: number;
+  /**
+   * Presigned s3 url from the server
+   */
   url: string;
   title: string;
   description: string;

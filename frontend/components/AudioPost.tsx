@@ -1,7 +1,7 @@
 import { Post } from "@/service/posts";
 import { Link, useIsFocused } from "@react-navigation/native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import React, { memo, useCallback, useEffect } from "react";
+import React, { memo, useCallback, useEffect, useMemo } from "react";
 import {
   Dimensions,
   Image,
@@ -17,6 +17,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useAudioManager } from "./AudioManager";
+import S3Image from "./S3Image";
 import { LikeBar } from "./ui/LikeButton";
 
 const { width, height } = Dimensions.get("window");
@@ -36,7 +37,9 @@ const AudioPostComponent: React.FC<Post> = ({
   const { setActivePlayer, activePlayer } = useAudioManager();
   const isFocused = useIsFocused();
 
-  const player = useAudioPlayer({ uri: url });
+  const source = useMemo(() => ({ uri: url }), [url]);
+
+  const player = useAudioPlayer(url);
   const status = useAudioPlayerStatus(player);
 
   /**
@@ -137,7 +140,7 @@ const AudioPostComponent: React.FC<Post> = ({
   return (
     <View id={"audio-post-" + id} style={styles.container}>
       <View style={styles.header}>
-        <Image source={{ uri: avatar }} style={styles.avatar} />
+        {avatar && <S3Image source={avatar} style={styles.avatar} />}
         <Text style={styles.title}>{title}</Text>
       </View>
 

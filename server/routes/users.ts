@@ -1,12 +1,11 @@
 // server/routes/users.ts
 
-import bcrypt from "bcrypt";
 import express from "express";
 import { AuthenticatedRequest } from "..";
 import { cognitoAuthorizer } from "../authorizer";
 import config from "../config";
-import { UserCreateInput } from "../generated/prisma/models";
 import { prisma } from "../prisma";
+import { IdTokenClaimsPayload, verifyIdToken } from "../service/CognitoService";
 import { createPresignedUrlWithClient } from "../service/S3Service";
 import { mapTagResults } from "../util/tags";
 
@@ -14,7 +13,7 @@ const router = express.Router();
 
 router.use(cognitoAuthorizer);
 
-//TODO: get id from jwt
+//send 404 when user it not found to trigger onboarding
 router.get("/current", async (req: AuthenticatedRequest, res) => {
   try {
     const userId = req.userId;
@@ -62,17 +61,20 @@ router.get("/current", async (req: AuthenticatedRequest, res) => {
   }
 });
 
-//TODO: update impl with cognito
+//Create a new user using the sub claim as cognito id
+//This requires the id token to get name and email claims,
+//send it in the body of the request and verify separate from access token.
 router.post("/new", async (req, res) => {
   try {
-    const { email, name, password, avatar }: UserCreateInput = req.body;
+    const { idToken }: { idToken: string } = req.body;
 
-    const saltRounds = 10;
-    // Hash the password, automatically generating a salt
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const claims = (await verifyIdToken(idToken)) as IdTokenClaimsPayload;
+
+    const { email, name } = claims;
+    const username = claims["cognito:username"];
 
     const newUser = await prisma.user.create({
-      data: { email, name, password: hashedPassword, avatar },
+      data: { email, name, username },
     });
     console.info("USER", newUser);
     res.status(200).json(newUser);

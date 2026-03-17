@@ -4,6 +4,7 @@
  * Module dependencies.
  */
 
+import "dotenv/config";
 import { createServer } from "http";
 import app from "../dist/app.js";
 
@@ -77,4 +78,11 @@ function onListening() {
   var addr = server.address();
   var bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
   console.log("Listening on " + bind);
+  console.info("Running with node env: ", process.env.NODE_ENV);
+  console.info(
+    "Running with s3 config: ",
+    process.env.AWS_REGION,
+    process.env.S3_IMAGES_BUCKET,
+    process.env.S3_AUDIO_FILES_BUCKET,
+  );
 }

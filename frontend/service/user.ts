@@ -31,20 +31,42 @@ export class UserService {
     return (await result.json()) as UserProfile;
   }
 
-  public async getPresignedUrl({
-    filename,
-    contentType,
-  }: GetPresignedUrlBody): Promise<PresignedResponse> {
-    const res = await fetch(`${SERVER_URL}/users/avatar/pre-signed-url`, {
+  public async createNewUser(idToken: string) {
+    const res = await this.apiClient(`${SERVER_URL}/users/new`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        filename,
-        contentType,
+        idToken,
       }),
     });
+
+    if (!res.ok) {
+      throw new Error("Failed to create new user");
+    }
+
+    const data: User = await res.json();
+    return data;
+  }
+
+  public async getPresignedUrl({
+    filename,
+    contentType,
+  }: GetPresignedUrlBody): Promise<PresignedResponse> {
+    const res = await this.apiClient(
+      `${SERVER_URL}/users/avatar/pre-signed-url`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          filename,
+          contentType,
+        }),
+      },
+    );
 
     if (!res.ok) {
       throw new Error("Failed to get presigned URL");
@@ -55,7 +77,7 @@ export class UserService {
   }
 
   public async createNewAvatar({ key }: CreateNewAvatarBody) {
-    const res = await fetch(`${SERVER_URL}/users/avatar/update`, {
+    const res = await this.apiClient(`${SERVER_URL}/users/avatar/update`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

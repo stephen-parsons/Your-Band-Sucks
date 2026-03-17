@@ -4,6 +4,8 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ## Prereqs
 
+### Cognito
+
 Create a file `.env` with the following variables:
 
 ```
@@ -12,6 +14,10 @@ COGNITO_CLIENT_ID = "client-id"
 ```
 
 You will need aws access to grab the correct values.
+
+### Dev server
+
+Set up an alias in your `/etc/hotst` file to point `127.0.0.1` to `dev.yourbandsucks.com`. This is the only whitelisted origin for S3.
 
 ## Get started
 

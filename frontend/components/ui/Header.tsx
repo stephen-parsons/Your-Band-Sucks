@@ -65,7 +65,6 @@ export function Header({
               <View style={styles.formPlaceholder}>
                 <TouchableOpacity
                   //TODO: show loader
-                  //a gif would be a funny loader, beavis and butthead maybe
                   onPress={() => signOut()}
                   style={[styles.uploadButton, styles.paddedButton]}
                 >

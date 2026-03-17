@@ -21,9 +21,16 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import AuthProvider from "./AuthProvider";
 
-const { userPoolId, userPoolClientId } = Constants.expoConfig?.extra || {};
+const {
+  userPoolId,
+  userPoolClientId,
+  identityPoolId,
+  awsRegion,
+  imagesBucket,
+  audioFilesBucket,
+} = Constants.expoConfig?.extra || {};
 
-if (!userPoolId || !userPoolClientId)
+if (!userPoolId || !userPoolClientId || !identityPoolId)
   throw new Error("Missing required Cognito configs!!");
 
 Amplify.configure({
@@ -31,6 +38,25 @@ Amplify.configure({
     Cognito: {
       userPoolId,
       userPoolClientId,
+      identityPoolId,
+    },
+  },
+  Storage: {
+    S3: {
+      bucket: imagesBucket,
+      region: awsRegion,
+      buckets: {
+        [imagesBucket]: {
+          bucketName: imagesBucket,
+          region: awsRegion,
+          paths: {
+            "*": {
+              authenticated: ["get"],
+              guest: ["get"],
+            },
+          },
+        },
+      },
     },
   },
 });

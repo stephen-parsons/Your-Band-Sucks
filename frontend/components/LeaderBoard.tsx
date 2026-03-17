@@ -1,12 +1,13 @@
 import { Post, Posts } from "@/service/posts";
 import React, { useEffect } from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import S3Image from "./S3Image";
 import { AnimatedCount } from "./ui/AnimtedCount";
 
 type TableProps = {
@@ -57,7 +58,7 @@ const PodiumBlock = ({
     <Animated.View style={[styles.podiumBlock, style]}>
       <View style={styles.avatarContainer}>
         {item.user.avatar ? (
-          <Image source={{ uri: item.user.avatar }} style={styles.avatar} />
+          <S3Image source={item.user.avatar} style={styles.avatar} />
         ) : (
           <View style={styles.avatarFallback}>
             <Text style={styles.avatarLetter}>

@@ -1,9 +1,9 @@
 export default {
   aws: {
-    region: "us-west-1",
+    region: process.env.AWS_REGION,
     bucket: {
-      audioFiles: "942909611242-audio-files",
-      images: "942909611242-images",
+      audioFiles: process.env.S3_AUDIO_FILES_BUCKET,
+      images: process.env.S3_IMAGES_BUCKET,
     } as const,
   },
 };

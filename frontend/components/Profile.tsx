@@ -21,12 +21,13 @@ import Animated, {
   ZoomIn,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import S3Image from "./S3Image";
 import { Header } from "./ui/Header";
 import Tag from "./ui/Tag";
 
 const AccountProfile = ({
   name: username,
-  avatar: avatarUrl,
+  avatar: avatarKey,
   email,
   songs: posts,
   tags,
@@ -142,8 +143,8 @@ const AccountProfile = ({
         style={styles.header}
       >
         <View style={styles.avatarColumn}>
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          {avatarKey ? (
+            <S3Image source={avatarKey} style={styles.avatar} />
           ) : (
             <TouchableOpacity
               style={styles.placeholder}

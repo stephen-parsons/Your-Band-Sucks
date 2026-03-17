@@ -7,8 +7,9 @@ import config from "../config";
 import { SongCreateInput } from "../generated/prisma/models";
 import { prisma } from "../prisma";
 import {
-  createPresignedUrlWithClient,
-  generateS3Url,
+  BUCKETS,
+  createPresignedUrlWithClientGET,
+  createPresignedUrlWithClientPUT,
 } from "../service/S3Service";
 
 const router = express.Router();
@@ -36,16 +37,22 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
         },
       },
     });
-    const newPosts = posts.map((post) => {
-      const newPost = {
-        ...post,
-        url: generateS3Url(config.aws.bucket.audioFiles, post.key),
-        like: post.likes[0]?.type.toLocaleLowerCase(),
-      } as any;
-      delete newPost.likes;
-      delete newPost.key;
-      return newPost;
-    });
+    const newPosts = await Promise.all(
+      posts.map(async (post) => {
+        const url = await createPresignedUrlWithClientGET({
+          key: post.key,
+          bucket: BUCKETS.audioFiles,
+        });
+        const newPost = {
+          ...post,
+          url,
+          like: post.likes[0]?.type.toLocaleLowerCase(),
+        } as any;
+        delete newPost.likes;
+        delete newPost.key;
+        return newPost;
+      }),
+    );
     console.info("POSTS", newPosts);
     res.status(200).json(newPosts);
   } catch (error) {
@@ -104,7 +111,7 @@ router.post("/pre-signed-url", async (req: AuthenticatedRequest, res) => {
     } = req.body;
     const key = `${userId}/${filename}`;
     const bucket = config.aws.bucket.audioFiles;
-    const url = await createPresignedUrlWithClient({
+    const url = await createPresignedUrlWithClientPUT({
       bucket,
       key,
       contentType,
