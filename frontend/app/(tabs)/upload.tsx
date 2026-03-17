@@ -33,9 +33,19 @@ const S3UploadForm: React.FC = () => {
     null,
   );
   const [uploading, setUploading] = useState(false);
+  const [formErrors, setFormErrors] = useState<Map<string, string>>(new Map());
 
   //list of all tags from the db for auto-completing
   const { tags: tagList } = useTags();
+
+  const setFormInput = useCallback(
+    (input: string | string[], field: string) => {
+      if (input.length === 0) {
+        setFormErrors((curr) => new Map(curr.set(field, "empty")));
+      } else setFormErrors((curr) => new Map(curr.set(field, "")));
+    },
+    [title, description, tags],
+  );
 
   //TODO: sanitize filename and check file size limit (in bytes)
   const pickFile = useCallback(async () => {
@@ -61,8 +71,11 @@ const S3UploadForm: React.FC = () => {
       return;
     }
 
-    if (!file) {
-      Alert.alert("Please select a file");
+    if (!file || !title || !description || tags.length <= 0) {
+      setFormInput(title, "title");
+      setFormInput(description, "description");
+      setFormInput(tags, "tags");
+      console.error("Please select a file and fill out the form.");
       return;
     }
 
@@ -114,7 +127,7 @@ const S3UploadForm: React.FC = () => {
     } finally {
       setUploading(false);
     }
-  }, [file, service]);
+  }, [file, service, title, description, tags]);
 
   return (
     <View style={styles.container}>
@@ -123,14 +136,30 @@ const S3UploadForm: React.FC = () => {
       <TextInput
         style={[styles.input, { backgroundColor: textInputBackgroundColor }]}
         value={title}
-        onChangeText={setTitle}
+        onChangeText={(text) => {
+          setFormInput(text, "title");
+          setTitle(text);
+        }}
       />
+      {formErrors.get("title") === "empty" && (
+        <ThemedText style={{ color: "rgb(208 70 70)", fontStyle: "italic" }}>
+          What's your song called?
+        </ThemedText>
+      )}
       <ThemedText style={styles.label}>Description</ThemedText>
       <TextInput
         style={[styles.input, { backgroundColor: textInputBackgroundColor }]}
         value={description}
-        onChangeText={setDescription}
+        onChangeText={(text) => {
+          setFormInput(text, "description");
+          setDescription(text);
+        }}
       />
+      {formErrors.get("description") === "empty" && (
+        <ThemedText style={{ color: "rgb(208 70 70)", fontStyle: "italic" }}>
+          Tell us about your new tune
+        </ThemedText>
+      )}
       <ThemedText style={styles.label}>Tags</ThemedText>
       <Autocomplete
         placeholder={"Add tags to share your song!"}
@@ -144,6 +173,11 @@ const S3UploadForm: React.FC = () => {
           })
         }
       />
+      {formErrors.get("tags") === "empty" && (
+        <ThemedText style={{ color: "rgb(208 70 70)", fontStyle: "italic" }}>
+          Add at least one tag
+        </ThemedText>
+      )}
       <Tags setTags={setTags} tags={tags} />
       <View style={styles.fileRow}>
         <TouchableOpacity
@@ -213,6 +247,8 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   fileRow: {
+    flexWrap: "wrap",
+    gap: 4,
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 15,
