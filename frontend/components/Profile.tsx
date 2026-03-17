@@ -116,23 +116,6 @@ const AccountProfile = ({
     }
   }, []);
 
-  function ListItem({
-    item,
-    count,
-    index,
-  }: {
-    index: number;
-    count: number;
-    item: ReactNode;
-  }) {
-    return (
-      <View key={index} style={styles.row}>
-        {item}
-        <AnimatedCount value={count || 0} />
-      </View>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <Header text={"Looking good!"} signOut />
@@ -262,7 +245,7 @@ const AccountProfile = ({
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <Animated.View entering={ZoomIn} style={styles.modalContent}>
+          <Animated.View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <ThemedText style={styles.modalTitle}>Update Photo</ThemedText>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -305,6 +288,23 @@ const AccountProfile = ({
     </SafeAreaView>
   );
 };
+
+function ListItem({
+  item,
+  count,
+  index,
+}: {
+  index: number;
+  count: number;
+  item: ReactNode;
+}) {
+  return (
+    <View key={index} style={styles.row}>
+      {item}
+      <AnimatedCount value={count || 0} />
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
