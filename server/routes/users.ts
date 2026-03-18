@@ -53,6 +53,7 @@ router.get("/current", async (req: AuthenticatedRequest, res) => {
         _count: true,
       },
       take: 10,
+      orderBy: { songs: { _count: "desc" } },
     });
     const result = { ...user, tags: mapTagResults(userTags) };
     console.info("USER", result);
