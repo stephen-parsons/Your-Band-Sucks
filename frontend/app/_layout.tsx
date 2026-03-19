@@ -13,12 +13,17 @@ import {
   ThemeProvider as AmplifyThemeProvider,
   Authenticator,
   defaultDarkModeOverride,
+  useTheme,
 } from "@aws-amplify/ui-react-native";
 import { Amplify } from "aws-amplify";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import PageLoader from "@/components/PageLoader";
+import SignIn from "@/components/SignIn";
+import { ThemedText } from "@/components/themed-text";
 import Constants from "expo-constants";
+import { View } from "react-native";
 import AuthProvider from "./AuthProvider";
 
 const {
@@ -27,7 +32,6 @@ const {
   identityPoolId,
   awsRegion,
   imagesBucket,
-  audioFilesBucket,
 } = Constants.expoConfig?.extra || {};
 
 if (!userPoolId || !userPoolClientId || !identityPoolId)
@@ -72,35 +76,57 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <GestureHandlerRootView>
         <SafeAreaProvider>
-          <AmplifyThemeProvider
-            colorMode={colorScheme}
-            theme={{ overrides: [defaultDarkModeOverride] }}
-          >
-            <Authenticator.Provider>
-              <Authenticator
-                loginMechanisms={["email", "username"]}
-                signUpAttributes={["email", "name"]}
-              >
-                <AuthProvider>
-                  <PostContextProvider>
-                    <Stack>
-                      <Stack.Screen
-                        name="(tabs)"
-                        options={{ headerShown: false }}
-                      />
-                      <Stack.Screen
-                        name="modal"
-                        options={{ presentation: "modal", title: "Modal" }}
-                      />
-                    </Stack>
-                  </PostContextProvider>
-                </AuthProvider>
-              </Authenticator>
-            </Authenticator.Provider>
-          </AmplifyThemeProvider>
+          <PageLoader>
+            <AmplifyThemeProvider
+              colorMode={colorScheme}
+              theme={{ overrides: [defaultDarkModeOverride] }}
+            >
+              <Authenticator.Provider>
+                <Authenticator
+                  loginMechanisms={["email", "username"]}
+                  signUpAttributes={["email", "name"]}
+                  Container={(props) => (
+                    <Authenticator.Container
+                      {...props}
+                      style={{ backgroundColor: "black" }}
+                    />
+                  )}
+                  components={{ SignIn: SignIn }}
+                >
+                  <AuthProvider>
+                    <PostContextProvider>
+                      <Stack>
+                        <Stack.Screen
+                          name="(tabs)"
+                          options={{ headerShown: false }}
+                        />
+                        <Stack.Screen
+                          name="modal"
+                          options={{ presentation: "modal", title: "Modal" }}
+                        />
+                      </Stack>
+                    </PostContextProvider>
+                  </AuthProvider>
+                </Authenticator>
+              </Authenticator.Provider>
+            </AmplifyThemeProvider>
+          </PageLoader>
         </SafeAreaProvider>
         <StatusBar style="auto" />
       </GestureHandlerRootView>
     </ThemeProvider>
   );
 }
+
+const MyAppHeader = () => {
+  const {
+    tokens: { space, fontSizes },
+  } = useTheme();
+  return (
+    <View>
+      <ThemedText style={{ fontSize: fontSizes.xxxl, padding: space.xl }}>
+        Come on in!
+      </ThemedText>
+    </View>
+  );
+};

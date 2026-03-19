@@ -1,15 +1,14 @@
+import { useLoadingContext } from "@/components/PageLoader";
 import AccountProfile from "@/components/Profile";
 import { UserProfile, UserService } from "@/service/user";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { StyleSheet, Text, View } from "react-native";
 import { useAuthContext } from "../AuthProvider";
 
 export default function Profile() {
   const { apiClient, isAuthenticated } = useAuthContext();
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { isLoading, setIsLoading } = useLoadingContext();
   const [error, setError] = useState<Error | null>(null);
 
   const service = useMemo(() => new UserService(apiClient), [apiClient]);
@@ -45,16 +44,6 @@ export default function Profile() {
         <Text style={{ fontSize: 44, color: "white", textAlign: "center" }}>
           {error?.message}
         </Text>
-      )}
-      {isLoading && (
-        <SafeAreaView style={[styles.container, styles.horizontal]}>
-          <ActivityIndicator size="large" color="#0000ff" />
-          <Animated.Image
-            entering={FadeIn}
-            style={styles.gif}
-            source={require("../../assets/images/beavis_butthead.gif")}
-          />
-        </SafeAreaView>
       )}
       {!error && isAuthenticated && user && (
         <AccountProfile {...user} service={service} refreshData={refreshData} />

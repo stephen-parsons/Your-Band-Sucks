@@ -135,7 +135,7 @@ const AccountProfile = ({
                 <FontAwesome
                   style={styles.editIcon}
                   name="pencil-square-o"
-                  size={24}
+                  size={20}
                   color="black"
                 />
               </TouchableOpacity>

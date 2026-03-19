@@ -6,7 +6,6 @@ import {
   Modal,
   Pressable,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -62,7 +61,9 @@ export function Header({
           <View style={styles.modalOverlay}>
             <Animated.View entering={FadeInUp} style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Do you want to sign out?</Text>
+                <ThemedText style={styles.modalTitle}>
+                  Do you want to sign out?
+                </ThemedText>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                   <MaterialCommunityIcons name="close" color="#333" size={24} />
                 </TouchableOpacity>
@@ -74,7 +75,9 @@ export function Header({
                   onPress={() => signOut()}
                   style={[styles.uploadButton, styles.paddedButton]}
                 >
-                  <Text style={styles.uploadButtonText}>Sign out</Text>
+                  <ThemedText style={styles.uploadButtonText}>
+                    Sign out
+                  </ThemedText>
                 </TouchableOpacity>
               </View>
             </Animated.View>
@@ -94,8 +97,11 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
+    opacity: 0.92,
     width: "100%",
-    backgroundColor: "lightgrey",
+    borderWidth: 2,
+    borderColor: "antiquewhite",
+    backgroundColor: "black",
     borderRadius: 20,
     padding: 24,
     shadowColor: "#000",
@@ -116,7 +122,7 @@ const styles = StyleSheet.create({
   },
   formPlaceholder: {
     height: 120,
-    backgroundColor: "lightgrey",
+    backgroundColor: "black",
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
