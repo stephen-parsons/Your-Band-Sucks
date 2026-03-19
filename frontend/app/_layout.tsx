@@ -13,7 +13,6 @@ import {
   ThemeProvider as AmplifyThemeProvider,
   Authenticator,
   defaultDarkModeOverride,
-  useTheme,
 } from "@aws-amplify/ui-react-native";
 import { Amplify } from "aws-amplify";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -21,10 +20,9 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import PageLoader from "@/components/PageLoader";
 import SignIn from "@/components/SignIn";
-import { ThemedText } from "@/components/themed-text";
+import SignUp from "@/components/SignUp";
 import Constants from "expo-constants";
-import { View } from "react-native";
-import AuthProvider from "./AuthProvider";
+import AuthProvider from "./auth";
 
 const {
   userPoolId,
@@ -91,7 +89,7 @@ export default function RootLayout() {
                       style={{ backgroundColor: "black" }}
                     />
                   )}
-                  components={{ SignIn: SignIn }}
+                  components={{ SignIn: SignIn, SignUp: SignUp }}
                 >
                   <AuthProvider>
                     <PostContextProvider>
@@ -117,16 +115,3 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
-
-const MyAppHeader = () => {
-  const {
-    tokens: { space, fontSizes },
-  } = useTheme();
-  return (
-    <View>
-      <ThemedText style={{ fontSize: fontSizes.xxxl, padding: space.xl }}>
-        Come on in!
-      </ThemedText>
-    </View>
-  );
-};

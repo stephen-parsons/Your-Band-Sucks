@@ -13,6 +13,12 @@ export const cognitoAuthorizer: RequestHandler = async (req, res, next) => {
 
   try {
     const result = await verifyAccessToken(token);
+    //add the cognitoId to the request
+    (req as AuthenticatedRequest).cognitoId = result.sub;
+
+    //don't check for the app userId if creating a new account
+    if (req.path !== "/new") return next();
+
     const user = await prisma.user.findFirst({
       where: {
         cognitoId: result.sub,
@@ -21,12 +27,15 @@ export const cognitoAuthorizer: RequestHandler = async (req, res, next) => {
         id: true,
       },
     });
-    if (!user) throw new Error("No user found!!!");
-    //add the queried userId to the req object
+    if (!user || user === null) throw new Error("No user found!!!");
+
+    //add the userId to the request
     (req as AuthenticatedRequest).userId = user.id;
-    console.log("Found user: " + user.id);
-    next(); // Token is valid, proceed to the next handler
+    console.log("Found userId and cognitoId: " + user.id + result.sub);
+
+    next();
   } catch (error: any) {
-    res.status(401).send({ error: error.message });
+    console.error(error);
+    res.status(401).send({ error: "Unauthorized" });
   }
 };

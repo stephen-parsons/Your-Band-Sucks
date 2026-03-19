@@ -4,7 +4,7 @@ import { Posts } from "@/service/posts";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuthContext } from "../AuthProvider";
+import { useAuthContext } from "../auth";
 
 //TODO: store in redis cache and open ws to update in realtime?
 //TODO: refresh results after liking, move this to PostProvider

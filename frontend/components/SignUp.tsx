@@ -1,6 +1,6 @@
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAuthenticator } from "@aws-amplify/ui-react-native";
-import { signIn } from "aws-amplify/auth";
+import { signUp } from "aws-amplify/auth";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -19,13 +19,19 @@ import { useLoadingContext } from "./PageLoader";
 import { ThemedText } from "./themed-text";
 import { Header } from "./ui/Header";
 
-export default function SignIn() {
-  const { toSignUp, toForgotPassword } = useAuthenticator();
+export default function SignUp() {
+  const { toSignIn, toForgotPassword } = useAuthenticator();
   const [isModalVisible, setModalVisible] = useState(true);
   const { setIsLoading } = useLoadingContext();
   const router = useRouter();
   const [error, setError] = useState(false);
-  const fields = [{ name: "email" }, { name: "password" }];
+  const fields = [
+    { name: "email" },
+    { name: "password" },
+    { name: "confirm-password" },
+    { name: "username" },
+    { name: "name" },
+  ];
   const {
     control,
     formState: { errors, isValid },
@@ -41,7 +47,7 @@ export default function SignIn() {
     <Modal visible={isModalVisible} animationType="fade" transparent={true}>
       <View style={styles.modalOverlay}>
         <Animated.View entering={BounceInDown} style={styles.modalContent}>
-          <Header text="Sign in to check out new music!" />
+          <Header text="Nice to meet you!" />
 
           <View>
             {fields.map(({ name }) => (
@@ -77,15 +83,18 @@ export default function SignIn() {
             disabled={!isValid}
             onPress={async () => {
               try {
-                const { email, password } = getValues();
+                const { email, password, username, name } = getValues();
                 setIsLoading(true);
                 setModalVisible(false);
-                const response = await signIn({
-                  username: email,
+                const response = await signUp({
+                  username,
                   password,
-                  options: { authFlowType: "USER_SRP_AUTH" },
+                  options: {
+                    autoSignIn: true,
+                    userAttributes: { email, name },
+                  },
                 });
-                if (response.isSignedIn == true) router.push("/profile");
+                if (response.isSignUpComplete == true) router.push("/profile");
               } catch (e) {
                 setModalVisible(true);
                 setIsLoading(false);
@@ -93,7 +102,7 @@ export default function SignIn() {
             }}
             style={styles.button}
           >
-            <ThemedText>Log in</ThemedText>
+            <ThemedText>Let's go!</ThemedText>
           </TouchableOpacity>
 
           {error && (
@@ -107,11 +116,11 @@ export default function SignIn() {
           <LinksContainer
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
-            <LinkButton onPress={toForgotPassword}>
-              <ThemedText>Forgot Password?</ThemedText>
+            <LinkButton onPress={toSignIn}>
+              <ThemedText>Back to sign in</ThemedText>
             </LinkButton>
-            <LinkButton onPress={toSignUp}>
-              <ThemedText>Sign Up</ThemedText>
+            <LinkButton onPress={toForgotPassword}>
+              <ThemedText>I forgot my Password</ThemedText>
             </LinkButton>
           </LinksContainer>
         </Animated.View>

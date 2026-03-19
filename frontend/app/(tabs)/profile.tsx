@@ -3,10 +3,10 @@ import AccountProfile from "@/components/Profile";
 import { UserProfile, UserService } from "@/service/user";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { useAuthContext } from "../AuthProvider";
+import { useAuthContext } from "../auth";
 
 export default function Profile() {
-  const { apiClient, isAuthenticated } = useAuthContext();
+  const { apiClient, isAuthenticated, getIdToken } = useAuthContext();
   const [user, setUser] = useState<UserProfile | null>(null);
   const { isLoading, setIsLoading } = useLoadingContext();
   const [error, setError] = useState<Error | null>(null);
@@ -23,7 +23,13 @@ export default function Profile() {
         console.info("Fetching user profile...");
         setIsLoading(true);
         const result = await service.getUserProfile();
-        setUser(result);
+        if (result === null) {
+          const idToken = getIdToken();
+          if (idToken) {
+            const newUser = await service.createNewUser(idToken);
+            setUser({ ...newUser, songs: [], tags: [] });
+          } else throw new Error("Something went wrong.");
+        } else setUser(result);
         setIsLoading(false);
       } catch (e) {
         //handle error when user can't be founy by cognito ID
@@ -35,7 +41,7 @@ export default function Profile() {
         setIsLoading(false);
       }
     }
-    if (isAuthenticated && user === null) fetchUser();
+    if (isAuthenticated && user === null && !error) fetchUser();
   }, [user, isAuthenticated, service]);
 
   return (
@@ -45,7 +51,7 @@ export default function Profile() {
           {error?.message}
         </Text>
       )}
-      {!error && isAuthenticated && user && (
+      {!error && isAuthenticated && user && !isLoading && (
         <AccountProfile {...user} service={service} refreshData={refreshData} />
       )}
     </View>

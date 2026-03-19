@@ -16,12 +16,14 @@ const router = express.Router();
 
 router.use(cognitoAuthorizer);
 
-//send 404 when user it not found to trigger onboarding
+//return null if user is not found
 router.get("/current", async (req: AuthenticatedRequest, res) => {
   try {
-    const userId = req.userId;
+    const { userId, cognitoId } = req;
     const user = await prisma.user.findFirst({
-      where: { id: { equals: userId } },
+      //check cognitoId instead of userId, in case user has not been created yet
+      //call `/new` below if user is not found
+      where: { cognitoId: { equals: cognitoId } },
       select: {
         id: true,
         name: true,
@@ -39,6 +41,12 @@ router.get("/current", async (req: AuthenticatedRequest, res) => {
         },
       },
     });
+
+    if (!user) {
+      console.info("User not found, create an new user!");
+      return res.status(200).json(null);
+    }
+
     const userTags = await prisma.tag.findMany({
       where: {
         songs: {
@@ -85,6 +93,9 @@ router.post("/new", async (req, res) => {
     res.status(200).json(newUser);
   } catch (e: any) {
     console.error(e);
+    if (e.code === "P2002") {
+      return res.status(500).json({ error: "User already exists" });
+    }
     res.status(500).json({ error: "Failed to create new user" });
   }
 });

@@ -1,4 +1,4 @@
-import { useAuthContext } from "@/app/AuthProvider";
+import { useAuthContext } from "@/app/auth";
 import { Posts, PostService } from "@/service/posts";
 import {
   createContext,

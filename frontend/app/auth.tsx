@@ -13,6 +13,7 @@ export interface IAuthContext {
   username: string;
   isAuthenticated: boolean;
   apiClient: typeof fetch;
+  getIdToken: () => string | undefined;
 }
 
 const AuthContext = createContext<IAuthContext | null>(null);
@@ -72,7 +73,7 @@ export default function AuthProvider({ children }: PropsWithChildren) {
   const isAuthenticated = authStatus === "authenticated" && session !== null;
   return (
     <AuthContext.Provider
-      value={{ user, username, isAuthenticated, apiClient }}
+      value={{ user, username, isAuthenticated, apiClient, getIdToken }}
     >
       {children}
     </AuthContext.Provider>

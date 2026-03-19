@@ -247,7 +247,9 @@ const AccountProfile = ({
         <View style={styles.modalOverlay}>
           <Animated.View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <ThemedText style={styles.modalTitle}>Update Photo</ThemedText>
+              <ThemedText style={styles.modalTitle}>
+                Express yourself
+              </ThemedText>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <MaterialCommunityIcons name="close" color="#333" size={24} />
               </TouchableOpacity>

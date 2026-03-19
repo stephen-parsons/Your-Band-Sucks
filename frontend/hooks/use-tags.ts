@@ -1,4 +1,4 @@
-import { useAuthContext } from "@/app/AuthProvider";
+import { useAuthContext } from "@/app/auth";
 import { usePostContext } from "@/components/PostProvider";
 import { Tag } from "@/service/posts";
 import { useEffect, useState } from "react";
