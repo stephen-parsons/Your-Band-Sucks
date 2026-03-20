@@ -19,7 +19,7 @@ router.use(cognitoAuthorizer);
 //return null if user is not found
 router.get("/current", async (req: AuthenticatedRequest, res) => {
   try {
-    const { userId, cognitoId } = req;
+    const { cognitoId } = req;
     const user = await prisma.user.findFirst({
       //check cognitoId instead of userId, in case user has not been created yet
       //call `/new` below if user is not found
@@ -51,7 +51,7 @@ router.get("/current", async (req: AuthenticatedRequest, res) => {
       where: {
         songs: {
           every: {
-            user: { id: userId },
+            user: { cognitoId },
           },
         },
       },
@@ -83,11 +83,11 @@ router.post("/new", async (req, res) => {
 
     const claims = (await verifyIdToken(idToken)) as IdTokenClaimsPayload;
 
-    const { email, name } = claims;
+    const { email, name, sub } = claims;
     const username = claims["cognito:username"];
 
     const newUser = await prisma.user.create({
-      data: { email, name, username },
+      data: { email, name, username, cognitoId: sub },
     });
     console.info("USER", newUser);
     res.status(200).json(newUser);

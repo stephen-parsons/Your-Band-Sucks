@@ -29,8 +29,8 @@ const AnimatedTextInput = ({
 }: {
   label: string;
   value: any;
-  error: string;
-  isPassword: boolean;
+  error?: string;
+  isPassword?: boolean;
 } & TextInputProps) => {
   const textInputBackgroundColor = useThemeColor(
     {},

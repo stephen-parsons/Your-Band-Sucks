@@ -195,14 +195,14 @@ const AccountProfile = ({
         }
       />
 
-      {tags.length > 0 && (
+      {tags?.length > 0 && (
         <>
           <View style={styles.row}>
             <ThemedText style={styles.uploadsHeader}>
               We hear you like these tags:
             </ThemedText>
             <MaterialCommunityIcons
-              style={[styles.uploadsHeaderIcon, { marginTop: 4 }]}
+              style={[styles.uploadsHeaderIcon]}
               name={"pound"}
               size={20}
               color={"grey"}
@@ -430,6 +430,7 @@ const styles = StyleSheet.create({
   },
   uploadsHeaderIcon: {
     paddingRight: 18,
+    marginTop: 4,
   },
   previewImage: {
     height: 200,

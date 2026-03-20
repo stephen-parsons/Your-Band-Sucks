@@ -52,7 +52,7 @@ export function PostContextProvider({ children }: PropsWithChildren) {
         setIsLoading(false);
       }
     }
-    if (isAuthenticated && posts === null) fetchFeed();
+    if (isAuthenticated && posts === null && !isLoading) fetchFeed();
   }, [posts, isAuthenticated, service]);
 
   return (

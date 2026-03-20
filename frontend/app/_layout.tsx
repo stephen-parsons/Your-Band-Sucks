@@ -18,10 +18,11 @@ import { Amplify } from "aws-amplify";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import SignIn from "@/components/auth/SignIn";
+import SignUp from "@/components/auth/SignUp";
 import PageLoader from "@/components/PageLoader";
-import SignIn from "@/components/SignIn";
-import SignUp from "@/components/SignUp";
 import Constants from "expo-constants";
+import { Appearance } from "react-native";
 import AuthProvider from "./auth";
 
 const {
@@ -67,6 +68,8 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
+Appearance.setColorScheme("dark");
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
@@ -89,7 +92,10 @@ export default function RootLayout() {
                       style={{ backgroundColor: "black" }}
                     />
                   )}
-                  components={{ SignIn: SignIn, SignUp: SignUp }}
+                  components={{
+                    SignIn: SignIn,
+                    SignUp: SignUp,
+                  }}
                 >
                   <AuthProvider>
                     <PostContextProvider>

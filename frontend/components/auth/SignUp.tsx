@@ -1,5 +1,5 @@
 import { useAuthenticator } from "@aws-amplify/ui-react-native";
-import { signIn } from "aws-amplify/auth";
+import { signUp } from "aws-amplify/auth";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -13,20 +13,53 @@ import {
   ViewProps,
 } from "react-native";
 import Animated, { BounceInDown } from "react-native-reanimated";
-import AnimatedTextInput from "./AnimatedTextInput";
-import { useLoadingContext } from "./PageLoader";
-import { ThemedText } from "./themed-text";
-import { Header } from "./ui/Header";
+import AnimatedTextInput from "../AnimatedTextInput";
+import { useLoadingContext } from "../PageLoader";
+import { ThemedText } from "../themed-text";
+import { Header } from "../ui/Header";
+import ConfirmSignUp from "./ConfirmSignUp";
 
-export default function SignIn() {
-  const { toSignUp, toForgotPassword } = useAuthenticator();
+export default function SignUp() {
+  const { toSignIn, toForgotPassword, codeDeliveryDetails } =
+    useAuthenticator();
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [isModalVisible, setModalVisible] = useState(true);
   const { setIsLoading } = useLoadingContext();
   const router = useRouter();
   const [error, setError] = useState(false);
   const fields = [
-    { name: "email", rules: { required: "We need to know who you are!" } },
-    { name: "password", rules: { required: "Make it a good one!" } },
+    {
+      name: "email",
+      rules: {
+        required: "We need to know who you are!",
+        pattern: {
+          value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+          message: "Come on man, that's not email!",
+        },
+      },
+    },
+    {
+      name: "password",
+      rules: {
+        required: "Make it a good one!",
+        pattern: {
+          value:
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+          message:
+            "Password must be at least 8 characters, with 1 uppercase, 1 lowercase, 1 number, and 1 symbol (@$!%*?&)",
+        },
+      },
+    },
+    {
+      name: "confirm password",
+      rules: {
+        required: "Make sure you got it right",
+        validate: (value: string) =>
+          value === getValues().password || "Passwords do not match",
+      },
+    },
+    { name: "username", rules: { required: "Just for fun!" } },
+    { name: "name", rules: { required: "Please provide your full name" } },
   ];
   const {
     control,
@@ -34,33 +67,40 @@ export default function SignIn() {
     getValues,
   } = useForm({ mode: "onChange" });
 
+  if (showConfirmation) {
+    return <ConfirmSignUp username={getValues().username} />;
+  }
+
   return (
     <Modal visible={isModalVisible} animationType="fade" transparent={true}>
       <View style={styles.modalOverlay}>
         <Animated.View entering={BounceInDown} style={styles.modalContent}>
-          <Header text="Sign in to check out new music!" />
+          <Header text="Nice to meet you!" />
 
           <View>
             {fields.map(({ name, rules }) => (
               <Controller
                 control={control}
-                rules={rules}
                 name={name}
+                rules={rules}
+                key={name}
                 render={({ field: { value, onChange } }) => {
                   const passwordProps = {
                     autoCorrect: false, // Recommended to disable autocorrect for passwords
                     textContentType: "password", // Helps with autofill/keychain integration (iOS)
                     autoComplete: "current-password", // Helps with autofill (Android & cross-platform)
                   };
+                  const isPassword =
+                    name === "password" || name === "confirm password";
                   return (
                     <AnimatedTextInput
                       error={errors[name]?.message}
                       onChangeText={onChange}
                       key={name}
-                      label={name}
                       value={value}
-                      isPassword={name === "password"}
-                      {...(name === "password" && (passwordProps as any))}
+                      label={name}
+                      isPassword={isPassword}
+                      {...(isPassword && (passwordProps as any))}
                     />
                   );
                 }}
@@ -72,41 +112,50 @@ export default function SignIn() {
             disabled={!isValid}
             onPress={async () => {
               try {
-                const { email, password } = getValues();
+                const { email, password, username, name } = getValues();
                 setIsLoading(true);
                 setModalVisible(false);
-                const response = await signIn({
-                  username: email,
+                const response = await signUp({
+                  username,
                   password,
-                  options: { authFlowType: "USER_SRP_AUTH" },
+                  options: {
+                    autoSignIn: true,
+                    userAttributes: { email, name },
+                  },
                 });
-                if (response.isSignedIn == true) router.push("/profile");
-              } catch (e) {
+                if (response.isSignUpComplete == true) router.push("/profile");
+                else if (response.nextStep.signUpStep === "CONFIRM_SIGN_UP") {
+                  console.log("Confirm sign up");
+                  setIsLoading(false);
+                  setShowConfirmation(true);
+                }
+              } catch (e: any) {
+                setError(e.message);
                 setModalVisible(true);
                 setIsLoading(false);
               }
             }}
             style={styles.button}
           >
-            <ThemedText>Log in</ThemedText>
+            <ThemedText>Let's go!</ThemedText>
           </TouchableOpacity>
 
           {error && (
             <ThemedText
               style={{ color: "rgb(208 70 70)", fontStyle: "italic" }}
             >
-              Uh oh! Try again.
+              Uh oh! Try again. {error}
             </ThemedText>
           )}
 
           <LinksContainer
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
-            <LinkButton onPress={toForgotPassword}>
-              <ThemedText>Forgot Password?</ThemedText>
+            <LinkButton onPress={toSignIn}>
+              <ThemedText>Back to sign in</ThemedText>
             </LinkButton>
-            <LinkButton onPress={toSignUp}>
-              <ThemedText>Sign Up</ThemedText>
+            <LinkButton onPress={toForgotPassword}>
+              <ThemedText>I forgot my Password</ThemedText>
             </LinkButton>
           </LinksContainer>
         </Animated.View>
@@ -158,6 +207,11 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "bold",
+  },
+  input: {
+    padding: 8,
+    marginTop: 5,
+    borderRadius: 25,
   },
   button: {
     marginTop: 10,

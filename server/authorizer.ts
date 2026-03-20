@@ -3,6 +3,8 @@ import { AuthenticatedRequest } from ".";
 import { prisma } from "./prisma";
 import { verifyAccessToken } from "./service/CognitoService";
 
+const unauthorizedPaths = ["/current", "/new"];
+
 export const cognitoAuthorizer: RequestHandler = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -17,7 +19,10 @@ export const cognitoAuthorizer: RequestHandler = async (req, res, next) => {
     (req as AuthenticatedRequest).cognitoId = result.sub;
 
     //don't check for the app userId if creating a new account
-    if (req.path !== "/new") return next();
+    if (unauthorizedPaths.includes(req.path)) {
+      console.info("Skipping userId lookup for cognitoId: ", result.sub);
+      return next();
+    }
 
     const user = await prisma.user.findFirst({
       where: {
@@ -31,8 +36,7 @@ export const cognitoAuthorizer: RequestHandler = async (req, res, next) => {
 
     //add the userId to the request
     (req as AuthenticatedRequest).userId = user.id;
-    console.log("Found userId and cognitoId: " + user.id + result.sub);
-
+    console.log("Found userId and cognitoId: ", user.id, result.sub);
     next();
   } catch (error: any) {
     console.error(error);

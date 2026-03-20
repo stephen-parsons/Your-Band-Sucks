@@ -28,6 +28,9 @@ export class UserService {
 
   public async getUserProfile() {
     const result = await this.apiClient(`${SERVER_URL}/users/current`);
+    if (!result.ok) {
+      throw new Error("Failed to get user profile");
+    }
     return (await result.json()) as UserProfile;
   }
 
