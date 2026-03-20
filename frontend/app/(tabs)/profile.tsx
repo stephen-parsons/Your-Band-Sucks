@@ -32,10 +32,6 @@ export default function Profile() {
         } else setUser(result);
         setIsLoading(false);
       } catch (e) {
-        //handle error when user can't be founy by cognito ID
-        //and redner onboarding modal, not dismissable
-        //new user should be created when modal appears
-        // and user can upload avatar
         setError(e as Error);
         console.error(e);
         setIsLoading(false);

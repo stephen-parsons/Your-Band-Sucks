@@ -1,4 +1,3 @@
-import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAuthenticator } from "@aws-amplify/ui-react-native";
 import { signIn } from "aws-amplify/auth";
 import { useRouter } from "expo-router";
@@ -9,12 +8,12 @@ import {
   Pressable,
   PressableProps,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
   ViewProps,
 } from "react-native";
 import Animated, { BounceInDown } from "react-native-reanimated";
+import AnimatedTextInput from "./AnimatedTextInput";
 import { useLoadingContext } from "./PageLoader";
 import { ThemedText } from "./themed-text";
 import { Header } from "./ui/Header";
@@ -25,17 +24,15 @@ export default function SignIn() {
   const { setIsLoading } = useLoadingContext();
   const router = useRouter();
   const [error, setError] = useState(false);
-  const fields = [{ name: "email" }, { name: "password" }];
+  const fields = [
+    { name: "email", rules: { required: "We need to know who you are!" } },
+    { name: "password", rules: { required: "Make it a good one!" } },
+  ];
   const {
     control,
     formState: { errors, isValid },
     getValues,
   } = useForm({ mode: "onChange" });
-
-  const textInputBackgroundColor = useThemeColor(
-    {},
-    "textInputBackgroundColor",
-  );
 
   return (
     <Modal visible={isModalVisible} animationType="fade" transparent={true}>
@@ -44,27 +41,25 @@ export default function SignIn() {
           <Header text="Sign in to check out new music!" />
 
           <View>
-            {fields.map(({ name }) => (
+            {fields.map(({ name, rules }) => (
               <Controller
                 control={control}
+                rules={rules}
                 name={name}
                 render={({ field: { value, onChange } }) => {
                   const passwordProps = {
-                    secureTextEntry: true, // Hides the input characters
                     autoCorrect: false, // Recommended to disable autocorrect for passwords
                     textContentType: "password", // Helps with autofill/keychain integration (iOS)
                     autoComplete: "current-password", // Helps with autofill (Android & cross-platform)
                   };
                   return (
-                    <TextInput
-                      style={[
-                        styles.input,
-                        { backgroundColor: textInputBackgroundColor },
-                      ]}
+                    <AnimatedTextInput
+                      error={errors[name]?.message}
                       onChangeText={onChange}
                       key={name}
+                      label={name}
                       value={value}
-                      placeholder={name}
+                      isPassword={name === "password"}
                       {...(name === "password" && (passwordProps as any))}
                     />
                   );
@@ -163,11 +158,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "bold",
-  },
-  input: {
-    padding: 8,
-    marginTop: 5,
-    borderRadius: 25,
   },
   button: {
     marginTop: 10,

@@ -14,7 +14,7 @@ import { ThemedText } from "../themed-text";
 
 export function Header({
   text,
-  signOut: shouldSignOut,
+  signOut: showSignOut,
 }: {
   text: string;
   signOut?: boolean;
@@ -35,7 +35,7 @@ export function Header({
         >
           {text}
         </ThemedText>
-        {shouldSignOut && (
+        {showSignOut && (
           <Pressable
             style={{ position: "absolute", left: "90%" }}
             onPress={() => {
@@ -51,7 +51,7 @@ export function Header({
         )}
       </View>
 
-      {shouldSignOut && (
+      {showSignOut && (
         <Modal
           visible={isModalVisible}
           animationType="fade"
@@ -76,7 +76,7 @@ export function Header({
                   style={[styles.uploadButton, styles.paddedButton]}
                 >
                   <ThemedText style={styles.uploadButtonText}>
-                    Sign out
+                    See ya!
                   </ThemedText>
                 </TouchableOpacity>
               </View>

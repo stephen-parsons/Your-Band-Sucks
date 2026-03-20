@@ -1,4 +1,3 @@
-import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAuthenticator } from "@aws-amplify/ui-react-native";
 import { signUp } from "aws-amplify/auth";
 import { useRouter } from "expo-router";
@@ -9,12 +8,12 @@ import {
   Pressable,
   PressableProps,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
   ViewProps,
 } from "react-native";
 import Animated, { BounceInDown } from "react-native-reanimated";
+import AnimatedTextInput from "./AnimatedTextInput";
 import { useLoadingContext } from "./PageLoader";
 import { ThemedText } from "./themed-text";
 import { Header } from "./ui/Header";
@@ -26,22 +25,20 @@ export default function SignUp() {
   const router = useRouter();
   const [error, setError] = useState(false);
   const fields = [
-    { name: "email" },
-    { name: "password" },
-    { name: "confirm-password" },
-    { name: "username" },
-    { name: "name" },
+    { name: "email", rules: { required: "We need to know who you are!" } },
+    { name: "password", rules: { required: "Make it a good one!" } },
+    {
+      name: "confirm-password",
+      rules: { required: "Make sure you got it right" },
+    },
+    { name: "username", rules: { required: "Just for fun!" } },
+    { name: "name", rules: { required: "Please provide your full name" } },
   ];
   const {
     control,
     formState: { errors, isValid },
     getValues,
   } = useForm({ mode: "onChange" });
-
-  const textInputBackgroundColor = useThemeColor(
-    {},
-    "textInputBackgroundColor",
-  );
 
   return (
     <Modal visible={isModalVisible} animationType="fade" transparent={true}>
@@ -50,27 +47,24 @@ export default function SignUp() {
           <Header text="Nice to meet you!" />
 
           <View>
-            {fields.map(({ name }) => (
+            {fields.map(({ name, rules }) => (
               <Controller
                 control={control}
                 name={name}
+                rules={rules}
                 render={({ field: { value, onChange } }) => {
                   const passwordProps = {
-                    secureTextEntry: true, // Hides the input characters
                     autoCorrect: false, // Recommended to disable autocorrect for passwords
                     textContentType: "password", // Helps with autofill/keychain integration (iOS)
                     autoComplete: "current-password", // Helps with autofill (Android & cross-platform)
                   };
                   return (
-                    <TextInput
-                      style={[
-                        styles.input,
-                        { backgroundColor: textInputBackgroundColor },
-                      ]}
+                    <AnimatedTextInput
+                      error={errors[name]?.message}
                       onChangeText={onChange}
                       key={name}
                       value={value}
-                      placeholder={name}
+                      label={name}
                       {...(name === "password" && (passwordProps as any))}
                     />
                   );

@@ -22,6 +22,7 @@ export default function TabLayout() {
         options={{
           href: null, // This hides the tab from the tab bar
         }}
+        redirect={true}
       />
       <Tabs.Screen
         name="profile"

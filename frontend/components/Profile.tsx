@@ -110,7 +110,6 @@ const AccountProfile = ({
     if (!result.canceled) {
       if (result.assets[0].type !== "image")
         throw new Error("Only images allowed!");
-      // Access the image URI from result.assets[0].ur
       console.info("Picked image file: " + result.assets[0].fileName);
       setFile(result.assets[0]);
     }
@@ -168,7 +167,7 @@ const AccountProfile = ({
 
       <View style={styles.row}>
         <ThemedText style={styles.uploadsHeader}>
-          Your recent uploads:
+          Some cool stuff you just shared:
         </ThemedText>
         <MaterialCommunityIcons
           style={styles.uploadsHeaderIcon}
@@ -200,7 +199,7 @@ const AccountProfile = ({
         <>
           <View style={styles.row}>
             <ThemedText style={styles.uploadsHeader}>
-              Some of your favorite tags:
+              We hear you like these tags:
             </ThemedText>
             <MaterialCommunityIcons
               style={[styles.uploadsHeaderIcon, { marginTop: 4 }]}
