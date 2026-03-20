@@ -97,7 +97,7 @@ const AnimatedTextInput = ({
           <TextInput
             style={[
               styles.input,
-              isPassword && { paddingRight: 40 },
+              isPassword && { marginRight: 40 },
               Platform.OS === "web" && { outlineStyle: "none" as any },
             ]}
             onFocus={() => setIsFocused(true)}
