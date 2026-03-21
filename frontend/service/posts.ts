@@ -1,7 +1,7 @@
 import { User } from "@/components/PostProvider";
-import { config } from "@/config";
+import Constants from "expo-constants";
 
-const SERVER_URL = config.server.baseUrl;
+export const SERVER_URL = Constants.expoConfig?.extra?.["apiUrl"];
 
 export interface PresignedResponse {
   url: string;

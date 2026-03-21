@@ -7,3 +7,7 @@ expo-env.d.ts
 
 # don't expose sensitive values
 .env
+
+# Expo native folders
+/android
+/ios

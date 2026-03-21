@@ -40,7 +40,7 @@ const AudioPostComponent: React.FC<Post> = ({
 
   const thumbColor = useThemeColor({}, "text");
 
-  const player = useAudioPlayer(url);
+  const player = useAudioPlayer({ uri: url });
   const status = useAudioPlayerStatus(player);
 
   /**
@@ -95,10 +95,8 @@ const AudioPostComponent: React.FC<Post> = ({
       const newTime = progress.value * duration;
       player.seekTo(newTime);
       player.play();
-    })
-    //may need to remove this for production.
-    //needed for ExpoGo
-    .runOnJS(true);
+    });
+  // .runOnJS(true);
 
   useEffect(() => {
     if (!player.isLoaded) return;

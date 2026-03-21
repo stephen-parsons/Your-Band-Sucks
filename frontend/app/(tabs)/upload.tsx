@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 /**
  * Upload component
@@ -130,7 +131,7 @@ const S3UploadForm: React.FC = () => {
   }, [file, service, title, description, tags]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Header text={"Show us what you got"} />
       <ThemedText style={styles.label}>Title</ThemedText>
       <TextInput
@@ -199,7 +200,7 @@ const S3UploadForm: React.FC = () => {
           {uploading ? "Uploading..." : "Upload"}
         </ThemedText>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -217,6 +218,7 @@ const Tags = ({
           showCloseIcon
           tag={tag}
           idx={idx}
+          key={idx}
           onPress={() => {
             setTags((curr) => {
               curr.splice(idx, 1);

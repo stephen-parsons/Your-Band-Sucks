@@ -1,7 +1,7 @@
 import "dotenv/config";
-import { ExpoConfig } from "expo/config";
+import { ConfigContext } from "expo/config";
 
-export default (config: ExpoConfig) => ({
+export default ({ config }: ConfigContext) => ({
   ...config,
   extra: {
     userPoolId: process.env.COGNITO_USER_POOL_ID,
@@ -10,5 +10,6 @@ export default (config: ExpoConfig) => ({
     awsRegion: process.env.AWS_REGION,
     imagesBucket: process.env.S3_IMAGES_BUCKET,
     audioFilesBucket: process.env.S3_AUDIO_FILES_BUCKET,
+    apiUrl: process.env.API_URL,
   },
 });

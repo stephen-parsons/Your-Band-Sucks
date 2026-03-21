@@ -1,5 +1,5 @@
 import { User } from "@/components/PostProvider";
-import { config } from "@/config";
+import Constants from "expo-constants";
 import {
   GetPresignedUrlBody,
   Posts,
@@ -8,7 +8,7 @@ import {
   UploadToS3Body,
 } from "./posts";
 
-export const SERVER_URL = config.server.baseUrl;
+export const SERVER_URL = Constants.expoConfig?.extra?.["apiUrl"];
 
 export interface UserProfile extends User {
   songs: Posts;
