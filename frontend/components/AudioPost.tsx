@@ -62,11 +62,27 @@ const AudioPostComponent: React.FC<Post> = ({
   const progressContainerStartPosition = 84;
   const progressContainerEndPosition = progressContainerWidth;
 
+  /**
+   * Callback for updating the position of various ui elemnts related to audio tracking.
+   */
+  const updateValues = useCallback(
+    (newPosition: number) => {
+      duration.value = AudioProvider.audioBuffer?.buffer?.duration || 0;
+      position.value = newPosition || 0;
+      progress.value = position.value / duration.value;
+      //Update thumb position as song progresses
+      thumbPosition.value =
+        (position.value / duration.value) * progressContainerWidth -
+        THUMB_SIZE / 2;
+    },
+    [duration, position, progress, thumbPosition, progressContainerWidth],
+  );
+
   //Gesture for handling seeking
   const panGesture = Gesture.Pan()
     .onStart(() => {
-      //store the starting position for relative movement
       AudioProvider.pause();
+      setIsPlaying(false);
       thumbScale.value = withSpring(1.4);
     })
     .onUpdate((event) => {
@@ -84,36 +100,31 @@ const AudioPostComponent: React.FC<Post> = ({
       //make sure not to exceeed the end of the song.
       const newProgress = currPosition / progressContainerWidth;
       progress.value =
-        newProgress > 1 ? 1 : currPosition / progressContainerWidth;
+        newProgress < 0
+          ? 0
+          : newProgress > 1
+            ? 1
+            : currPosition / progressContainerWidth;
     })
     .onEnd(() => {
       thumbScale.value = withSpring(1);
       //Seek to new timestamp of song
       const newTime =
         progress.value * (AudioProvider.audioBuffer?.buffer.duration || 0);
-      AudioProvider.resume(newTime);
-    });
-  // .runOnJS(true);
+      AudioProvider.updatePosition(newTime);
+      AudioProvider.resume(id, newTime);
+      setIsPlaying(true);
+    })
+    .runOnJS(true);
 
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      duration.value = AudioProvider.audioBuffer?.buffer?.duration || 0;
-      position.value = AudioProvider.playerNode?.context.currentTime || 0;
-      progress.value = position.value / duration.value;
-      //Update thumb position as song progresses
-      thumbPosition.value =
-        (position.value / duration.value) * progressContainerWidth -
-        THUMB_SIZE / 2;
-    }, 100);
-
     const positionInterval = setInterval(() => {
-      AudioProvider.playerNode?.context.currentTime &&
-        setPositionText(AudioProvider.playerNode?.context.currentTime);
-    }, 1000);
+      AudioProvider.currentPosition &&
+        setPositionText(AudioProvider.currentPosition);
+    }, 100);
 
     // Cleanup function to clear the interval when the component unmounts
     return () => {
-      clearInterval(intervalId);
       clearInterval(positionInterval);
     };
   }, []);
@@ -133,10 +144,10 @@ const AudioPostComponent: React.FC<Post> = ({
     } else {
       if (AudioProvider.playerNode?.id !== id) {
         setIsLoadingAudio(true);
-        await AudioProvider.setActivePlayer(id, url);
+        await AudioProvider.setActivePlayer(id, url, updateValues);
         AudioProvider.start();
         setDurationText(AudioProvider.audioBuffer?.buffer.duration || 0);
-      } else AudioProvider.resume();
+      } else AudioProvider.resume(id);
       setIsPlaying(true);
       setIsLoadingAudio(false);
     }
