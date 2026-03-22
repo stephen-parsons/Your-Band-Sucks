@@ -1,63 +1,59 @@
-import type { AudioPlayer } from "expo-audio";
-import React, { createContext, useCallback, useContext, useRef } from "react";
+import {
+  AudioBuffer,
+  AudioBufferQueueSourceNode,
+  AudioContext,
+} from "react-native-audio-api";
 
-interface AudioContextType {
-  activePlayer: AudioPlayer | null;
-  setActivePlayer: (player: AudioPlayer) => Promise<void>;
-  clearActivePlayer: () => void;
-}
+export type ActivePlayer = AudioBufferQueueSourceNode & { id: number };
 
-const AudioContext = createContext<AudioContextType | null>(null);
-
-export const AudioProvider: React.FC<{
-  children: React.ReactNode;
-}> = ({ children }) => {
-  const activePlayerRef = useRef<AudioPlayer | null>(null);
-
-  /**
-   * Sets the currently active player.
-   * If another player is already active, it will be paused.
-   */
-  const setActivePlayer = useCallback(async (player: AudioPlayer) => {
-    // If another player is playing, pause it
-    if (activePlayerRef.current && activePlayerRef.current !== player) {
-      try {
-        activePlayerRef.current.pause();
-      } catch (e) {
-        console.warn("Error pausing previous player:", e);
-      }
-    }
-
-    activePlayerRef.current = player;
-  }, []);
-
-  /**
-   * Clears the active player reference.
-   * Useful when a post unmounts.
-   */
-  const clearActivePlayer = useCallback(() => {
-    activePlayerRef.current = null;
-  }, []);
-
-  return (
-    <AudioContext.Provider
-      value={{
-        activePlayer: activePlayerRef.current,
-        setActivePlayer,
-        clearActivePlayer,
-      }}
-    >
-      {children}
-    </AudioContext.Provider>
-  );
-};
-
-export const useAudioManager = (): AudioContextType => {
-  const context = useContext(AudioContext);
-
-  if (!context) {
-    throw new Error("useAudioManager must be used within AudioProvider");
+class AudioProvider {
+  public audioContext;
+  public playerNode: ActivePlayer | null;
+  public audioBuffer: AudioBuffer | null;
+  constructor() {
+    this.audioContext = new AudioContext();
+    this.playerNode = null;
+    this.audioBuffer = null;
   }
 
-  return context;
-};
+  public pause() {
+    this.playerNode?.pause();
+    this.audioContext.suspend();
+  }
+
+  public resume(newTime?: number) {
+    this.audioContext.resume();
+    this.playerNode?.start(0, newTime);
+  }
+
+  public start() {
+    this.playerNode?.start();
+  }
+
+  public async setActivePlayer(id: number, url: string) {
+    if (this.playerNode?.id === id) {
+      console.warn("Player already set with id: " + this.playerNode?.id);
+      return;
+    }
+    try {
+      if (this.playerNode) this.clearActivePlayer();
+      const audioBuffer = await this.audioContext.decodeAudioData(url);
+      this.audioBuffer = audioBuffer;
+      const playerNode = this.audioContext.createBufferQueueSource();
+      playerNode.enqueueBuffer(audioBuffer);
+      playerNode.connect(this.audioContext.destination);
+      (playerNode as ActivePlayer).id = id;
+      this.playerNode = playerNode as ActivePlayer;
+    } catch (e) {
+      console.warn("Error seeting new active player:", e);
+      throw e;
+    }
+  }
+
+  public clearActivePlayer() {
+    console.log("clear active player");
+    this.playerNode = null;
+  }
+}
+
+export default new AudioProvider();

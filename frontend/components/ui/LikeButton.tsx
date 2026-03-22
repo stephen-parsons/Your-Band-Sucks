@@ -95,7 +95,7 @@ function LikeButtonComponent({
   );
 }
 
-export const LikeButton = memo(LikeButtonComponent);
+const LikeButton = memo(LikeButtonComponent);
 
 function LikeBarComponent({ songId, like }: LikeBarProps) {
   const [voted, setVoted] = useState<LikeBarProps["like"]>(like);

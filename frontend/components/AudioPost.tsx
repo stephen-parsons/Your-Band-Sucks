@@ -1,8 +1,7 @@
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Post } from "@/service/posts";
 import { Link, useIsFocused } from "@react-navigation/native";
-import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import React, { memo, useCallback, useEffect } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -16,10 +15,9 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { useAudioManager } from "./AudioManager";
+import AudioProvider from "./AudioManager";
 import S3Image from "./S3Image";
 import { ThemedText } from "./themed-text";
-import { LikeBar } from "./ui/LikeButton";
 
 const { width, height } = Dimensions.get("window");
 
@@ -35,13 +33,13 @@ const AudioPostComponent: React.FC<Post> = ({
   id,
   like,
 }) => {
-  const { setActivePlayer, activePlayer } = useAudioManager();
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const [positionText, setPositionText] = useState(0);
+  const [durationText, setDurationText] = useState(0);
   const isFocused = useIsFocused();
 
   const thumbColor = useThemeColor({}, "text");
-
-  const player = useAudioPlayer({ uri: url });
-  const status = useAudioPlayerStatus(player);
 
   /**
    * Audio player progress expressed as a decimal value between 0-1
@@ -52,9 +50,8 @@ const AudioPostComponent: React.FC<Post> = ({
   const thumbScale = useSharedValue(1);
   const thumbPosition = useSharedValue(0 - THUMB_SIZE / 2);
 
-  const duration = status?.duration ?? 0;
-  const position = status?.currentTime ?? 0;
-  const progressBarWidth = player.isLoaded ? (position / duration) * 100 : 0;
+  const duration = useSharedValue(0);
+  const position = useSharedValue(0);
 
   /**
    * Width of progress container for the current audio track.
@@ -69,7 +66,7 @@ const AudioPostComponent: React.FC<Post> = ({
   const panGesture = Gesture.Pan()
     .onStart(() => {
       //store the starting position for relative movement
-      player.pause();
+      AudioProvider.pause();
       thumbScale.value = withSpring(1.4);
     })
     .onUpdate((event) => {
@@ -92,41 +89,67 @@ const AudioPostComponent: React.FC<Post> = ({
     .onEnd(() => {
       thumbScale.value = withSpring(1);
       //Seek to new timestamp of song
-      const newTime = progress.value * duration;
-      player.seekTo(newTime);
-      player.play();
+      const newTime =
+        progress.value * (AudioProvider.audioBuffer?.buffer.duration || 0);
+      AudioProvider.resume(newTime);
     });
   // .runOnJS(true);
 
   useEffect(() => {
-    if (!player.isLoaded) return;
-    //Update thumb position as song progresses
-    thumbPosition.value =
-      (position / duration) * progressContainerWidth - THUMB_SIZE / 2;
-  }, [position, duration, player]);
+    const intervalId = setInterval(() => {
+      duration.value = AudioProvider.audioBuffer?.buffer?.duration || 0;
+      position.value = AudioProvider.playerNode?.context.currentTime || 0;
+      progress.value = position.value / duration.value;
+      //Update thumb position as song progresses
+      thumbPosition.value =
+        (position.value / duration.value) * progressContainerWidth -
+        THUMB_SIZE / 2;
+    }, 100);
+
+    const positionInterval = setInterval(() => {
+      AudioProvider.playerNode?.context.currentTime &&
+        setPositionText(AudioProvider.playerNode?.context.currentTime);
+    }, 1000);
+
+    // Cleanup function to clear the interval when the component unmounts
+    return () => {
+      clearInterval(intervalId);
+      clearInterval(positionInterval);
+    };
+  }, []);
 
   //Auto pause if screen unfocused
   useEffect(() => {
-    if (!isFocused && player.playing) {
-      player.pause();
+    if (!isFocused && isPlaying) {
+      AudioProvider.pause();
+      setIsPlaying(false);
     }
-  }, [isFocused]);
+  }, [isFocused, isPlaying]);
 
   const handlePlayPause = useCallback(async () => {
-    if (player.playing) {
-      player.pause();
+    if (isPlaying) {
+      AudioProvider.pause();
+      setIsPlaying(false);
     } else {
-      if (activePlayer?.id !== player.id) {
-        await setActivePlayer(player);
-      }
-      player.play();
+      if (AudioProvider.playerNode?.id !== id) {
+        setIsLoadingAudio(true);
+        await AudioProvider.setActivePlayer(id, url);
+        AudioProvider.start();
+        setDurationText(AudioProvider.audioBuffer?.buffer.duration || 0);
+      } else AudioProvider.resume();
+      setIsPlaying(true);
+      setIsLoadingAudio(false);
     }
-  }, [player]);
+  }, [isPlaying]);
 
   //Animated thumb
   const thumbStyle = useAnimatedStyle(() => ({
     transform: [{ scale: thumbScale.value }],
     left: thumbPosition.value,
+  }));
+
+  const progressBarWidthStyle = useAnimatedStyle(() => ({
+    width: progress.value * progressContainerWidth,
   }));
 
   const formatTime = (seconds?: number) => {
@@ -149,23 +172,19 @@ const AudioPostComponent: React.FC<Post> = ({
         <View>
           <TouchableOpacity onPress={handlePlayPause} style={styles.playButton}>
             <ThemedText style={styles.playText}>
-              {player.isLoaded
-                ? player.playing
-                  ? "Pause"
-                  : "Play"
-                : "Loading..."}
+              {isLoadingAudio ? "Loading..." : isPlaying ? "Pause" : "Play"}
             </ThemedText>
           </TouchableOpacity>
         </View>
 
         <View style={styles.progressContainer}>
-          <ThemedText style={styles.time}>{formatTime(position)}</ThemedText>
+          <ThemedText style={styles.time}>
+            {formatTime(positionText)}
+          </ThemedText>
 
           <GestureDetector gesture={panGesture}>
             <View style={styles.progressBar}>
-              <Animated.View
-                style={[styles.progress, { width: `${progressBarWidth}%` }]}
-              />
+              <Animated.View style={[styles.progress, progressBarWidthStyle]} />
               <Animated.View
                 style={[
                   { backgroundColor: thumbColor },
@@ -176,10 +195,12 @@ const AudioPostComponent: React.FC<Post> = ({
             </View>
           </GestureDetector>
 
-          <ThemedText style={styles.time}>{formatTime(duration)}</ThemedText>
+          <ThemedText style={styles.time}>
+            {formatTime(durationText)}
+          </ThemedText>
         </View>
       </View>
-      <LikeBar songId={id} like={like} />
+      {/* <LikeBar songId={id} like={like} /> */}
 
       <ThemedText style={styles.description}>{description}</ThemedText>
       <ThemedText style={styles.userName}>Posted by: {name}</ThemedText>
@@ -192,7 +213,7 @@ const AudioPostComponent: React.FC<Post> = ({
             onPress={() => console.info("Link clicked")}
             action={{ type: "NONE" }}
           >
-            #{tag.description}
+            <ThemedText>{`#${tag.description}`}</ThemedText>
           </Link>
         ))}
       </View>
