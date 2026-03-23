@@ -1,174 +1,87 @@
-// import {
-//   Points,
-//   Canvas as SKCanvas,
-//   SkPoint,
-//   vec,
-// } from "@shopify/react-native-skia";
-// import React, { useEffect, useMemo, useRef, useState } from "react";
-// import {
-//   ActivityIndicator,
-//   Button,
-//   LayoutChangeEvent,
-//   View,
-// } from "react-native";
-// import {
-//   AnalyserNode,
-//   AudioBuffer,
-//   AudioBufferSourceNode,
-//   AudioContext,
-// } from "react-native-audio-api";
+import { Canvas, Path, Skia } from "@shopify/react-native-skia";
+import React, { useEffect } from "react";
+import { StyleSheet } from "react-native";
+import { useSharedValue } from "react-native-reanimated";
+import AudioProvider from "./AudioManager";
 
-// interface Size {
-//   width: number;
-//   height: number;
-// }
+const FFT_SIZE = 512;
 
-// interface ChartProps {
-//   data: Uint8Array;
-//   dataSize: number;
-// }
+export default function SkiaVisualizer({ isPlaying }: { isPlaying: boolean }) {
+  const size = useSharedValue({ width: 0, height: 0 });
+  const waveformPath = useSharedValue(Skia.Path.Make());
+  const spectrumPath = useSharedValue(Skia.Path.Make());
 
-// const TimeChart: React.FC<ChartProps> = (props) => {
-//   const [size, setSize] = useState<Size>({ width: 0, height: 0 });
-//   const { data, dataSize } = props;
+  const timeData = new Uint8Array(FFT_SIZE);
+  const freqData = new Uint8Array(FFT_SIZE / 2);
 
-//   const onCanvasLayout = (event: LayoutChangeEvent) => {
-//     const { width, height } = event.nativeEvent.layout;
+  useEffect(() => {
+    let raf: number = 0;
 
-//     setSize({ width, height });
-//   };
+    if (isPlaying) {
+      console.log("Analyzer on");
+      raf = requestAnimationFrame(loop);
+    } else {
+      console.info("Analyzer off");
+      cancelAnimationFrame(raf);
+    }
 
-//   const points = useMemo(() => {
-//     const startWidth = 20;
-//     const maxWidth = size.width - 2 * startWidth;
-//     const maxHeight = size.height;
+    return () => cancelAnimationFrame(raf);
+  }, [isPlaying]);
 
-//     const p: SkPoint[] = [];
+  const loop = () => {
+    const analyser = AudioProvider.analyzer;
+    if (!analyser) return;
 
-//     data.forEach((value, index) => {
-//       const x = startWidth + (index * maxWidth) / dataSize;
-//       const y = maxHeight - (value / 255) * maxHeight;
+    const { height, width } = size.value;
 
-//       p.push(vec(x, y));
-//     });
+    analyser.getByteTimeDomainData(timeData);
+    analyser.getByteFrequencyData(freqData);
 
-//     return p;
-//   }, [size, data, dataSize]);
+    // -------- Waveform --------
+    const wavePath = Skia.Path.Make();
+    const slice = width / FFT_SIZE;
 
-//   return (
-//     <SKCanvas style={{ flex: 1 }} onLayout={onCanvasLayout}>
-//       <Points points={points} mode="polygon" color="#B5E1F1" strokeWidth={2} />
-//     </SKCanvas>
-//   );
-// };
+    for (let i = 0; i < FFT_SIZE; i++) {
+      const x = i * slice;
+      const y = (timeData[i] / 255) * height * 0.4;
 
-// const FFT_SIZE = 512;
+      if (i === 0) wavePath.moveTo(x, y);
+      else wavePath.lineTo(x, y);
+    }
 
-// const AudioVisualizer: React.FC = () => {
-//   const [isPlaying, setIsPlaying] = useState(false);
-//   const [isLoading, setIsLoading] = useState(false);
-//   const [times, setTimes] = useState<Uint8Array>(
-//     new Uint8Array(FFT_SIZE).fill(127),
-//   );
+    waveformPath.value = wavePath;
 
-//   const audioContextRef = useRef<AudioContext | null>(null);
-//   const bufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
-//   const audioBufferRef = useRef<AudioBuffer | null>(null);
-//   const analyserRef = useRef<AnalyserNode | null>(null);
+    // -------- Spectrum --------
+    const specPath = Skia.Path.Make();
+    const barWidth = width / (FFT_SIZE / 2);
 
-//   const handlePlayPause = () => {
-//     if (isPlaying) {
-//       bufferSourceRef.current?.stop();
-//     } else {
-//       if (!audioContextRef.current || !analyserRef.current) {
-//         return;
-//       }
+    for (let i = 0; i < FFT_SIZE / 2; i++) {
+      const x = i * barWidth;
+      const h = (freqData[i] / 255) * height * 0.6;
 
-//       bufferSourceRef.current = audioContextRef.current.createBufferSource();
-//       bufferSourceRef.current.buffer = audioBufferRef.current;
-//       bufferSourceRef.current.connect(analyserRef.current);
+      specPath.addRect({
+        x,
+        y: height - h,
+        width: barWidth - 2,
+        height: h,
+      });
+    }
 
-//       bufferSourceRef.current.start();
+    spectrumPath.value = specPath;
 
-//       requestAnimationFrame(draw);
-//     }
+    requestAnimationFrame(loop);
+  };
 
-//     setIsPlaying((prev) => !prev);
-//   };
+  return (
+    <Canvas style={styles.container} onSize={size}>
+      <Path path={waveformPath} color="lime" style="stroke" strokeWidth={2} />
+      <Path path={spectrumPath} color="cyan" />
+    </Canvas>
+  );
+}
 
-//   const draw = () => {
-//     if (!analyserRef.current) {
-//       return;
-//     }
-
-//     const timesArrayLength = analyserRef.current.fftSize;
-//     const frequencyArrayLength = analyserRef.current.frequencyBinCount;
-
-//     const timesArray = new Uint8Array(timesArrayLength);
-//     analyserRef.current.getByteTimeDomainData(timesArray);
-//     setTimes(timesArray);
-
-//     requestAnimationFrame(draw);
-//   };
-
-//   useEffect(() => {
-//     if (!audioContextRef.current) {
-//       audioContextRef.current = new AudioContext();
-//     }
-
-//     if (!analyserRef.current) {
-//       analyserRef.current = audioContextRef.current.createAnalyser();
-//       analyserRef.current.fftSize = FFT_SIZE;
-//       analyserRef.current.smoothingTimeConstant = 0.8;
-
-//       analyserRef.current.connect(audioContextRef.current.destination);
-//     }
-
-//     const fetchBuffer = async () => {
-//       setIsLoading(true);
-//       audioBufferRef.current = await fetch(
-//         "https://software-mansion.github.io/react-native-audio-api/audio/music/example-music-02.mp3",
-//       )
-//         .then((response) => response.arrayBuffer())
-//         .then((arrayBuffer) =>
-//           audioContextRef.current!.decodeAudioData(arrayBuffer),
-//         );
-
-//       setIsLoading(false);
-//     };
-
-//     fetchBuffer();
-
-//     return () => {
-//       audioContextRef.current?.close();
-//     };
-//   }, []);
-
-//   return (
-//     <View style={{ flex: 1 }}>
-//       <View style={{ flex: 0.2 }} />
-//       <TimeChart data={times} dataSize={FFT_SIZE} />
-//       <View
-//         style={{ flex: 0.5, justifyContent: "center", alignItems: "center" }}
-//       >
-//         {isLoading && <ActivityIndicator color="#FFFFFF" />}
-//         <View
-//           style={{
-//             justifyContent: "center",
-//             flexDirection: "row",
-//             marginTop: 16,
-//           }}
-//         >
-//           <Button
-//             onPress={handlePlayPause}
-//             title={isPlaying ? "Pause" : "Play"}
-//             disabled={!audioBufferRef.current}
-//             color={"#38acdd"}
-//           />
-//         </View>
-//       </View>
-//     </View>
-//   );
-// };
-
-// export default AudioVisualizer;
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

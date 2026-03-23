@@ -1,4 +1,5 @@
 import {
+  AnalyserNode,
   AudioBuffer,
   AudioBufferSourceNode,
   AudioContext,
@@ -12,6 +13,8 @@ class AudioProvider {
   public audioBuffer: AudioBuffer | null;
   public currentPosition: number;
   private onPositionChangedCallback: (value: number) => void;
+  public analyzer: AnalyserNode | null = null;
+  public id: number | null = null;
   constructor() {
     this.audioContext = new AudioContext();
     this.playerNode = null;
@@ -25,6 +28,12 @@ class AudioProvider {
     this.audioContext.suspend();
   }
 
+  public stop() {
+    this.playerNode?.stop();
+    this.playerNode?.disconnect();
+    this.audioContext.close();
+  }
+
   public resume(id: number, newTime?: number) {
     this.createBufferSourceNode(id);
     this.audioContext.resume();
@@ -32,7 +41,8 @@ class AudioProvider {
     if (newTime) this.currentPosition = newTime;
   }
 
-  public start() {
+  public start(id: number) {
+    this.createBufferSourceNode(id);
     this.playerNode?.start();
   }
 
@@ -54,7 +64,6 @@ class AudioProvider {
       const audioBuffer = await this.audioContext.decodeAudioData(url);
       this.audioBuffer = audioBuffer;
       this.onPositionChangedCallback = onPositionChangedCallback;
-      this.createBufferSourceNode(id);
     } catch (e) {
       console.warn("Error setting new active player:", e);
       throw e;
@@ -64,9 +73,11 @@ class AudioProvider {
   private createBufferSourceNode(id: number) {
     const playerNode = this.audioContext.createBufferSource();
     playerNode.buffer = this.audioBuffer;
-    playerNode.connect(this.audioContext.destination);
+    const analyzer = this.createAnalyser();
+    playerNode.connect(analyzer);
     playerNode.onPositionChanged = (ev) => {
       this.currentPosition = ev.value;
+      this.onPositionChangedCallback(ev.value);
     };
     playerNode.onPositionChangedInterval = 100;
     (playerNode as ActivePlayer).id = id;
@@ -74,8 +85,18 @@ class AudioProvider {
   }
 
   public clearActivePlayer() {
-    console.log("clear active player");
+    console.log("Clearing active player...");
+    this.stop();
     this.playerNode = null;
+  }
+
+  private createAnalyser() {
+    const analyzer = this.audioContext.createAnalyser();
+    analyzer.fftSize = 512;
+    analyzer.smoothingTimeConstant = 0.8;
+    analyzer.connect(this.audioContext.destination);
+    this.analyzer = analyzer;
+    return analyzer;
   }
 }
 

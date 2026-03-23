@@ -16,6 +16,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import AudioProvider from "./AudioManager";
+import AudioVisualizer from "./AudioVisualizer";
 import S3Image from "./S3Image";
 import { ThemedText } from "./themed-text";
 
@@ -63,7 +64,7 @@ const AudioPostComponent: React.FC<Post> = ({
   const progressContainerEndPosition = progressContainerWidth;
 
   /**
-   * Callback for updating the position of various ui elemnts related to audio tracking.
+   * Callback for updating the position of various ui elements related to audio tracking.
    */
   const updateValues = useCallback(
     (newPosition: number) => {
@@ -145,7 +146,7 @@ const AudioPostComponent: React.FC<Post> = ({
       if (AudioProvider.playerNode?.id !== id) {
         setIsLoadingAudio(true);
         await AudioProvider.setActivePlayer(id, url, updateValues);
-        AudioProvider.start();
+        AudioProvider.start(id);
         setDurationText(AudioProvider.audioBuffer?.buffer.duration || 0);
       } else AudioProvider.resume(id);
       setIsPlaying(true);
@@ -178,6 +179,11 @@ const AudioPostComponent: React.FC<Post> = ({
       </View>
 
       {image && <Image source={{ uri: image }} style={styles.image} />}
+      {!image && (
+        <View style={{ flex: 1, padding: 16 }}>
+          <AudioVisualizer isPlaying={isPlaying} />
+        </View>
+      )}
 
       <View style={styles.audioContainer}>
         <View>
@@ -238,7 +244,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000",
-    minHeight: height,
+    minHeight: height - 240,
   },
   header: {
     flexDirection: "row",
