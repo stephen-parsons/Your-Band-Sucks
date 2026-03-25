@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import AudioProvider from "../audio/AudioManager";
 
 export interface User {
   name: string;
@@ -54,6 +55,25 @@ export function PostContextProvider({ children }: PropsWithChildren) {
     }
     if (isAuthenticated && posts === null && !isLoading) fetchFeed();
   }, [posts, isAuthenticated, service]);
+
+  useEffect(() => {
+    //pre-load audio buffers
+    try {
+      const promises =
+        posts &&
+        posts?.map(async (post) => {
+          if (!AudioProvider.hasAudioBuffer(post.id)) {
+            AudioProvider.preloadAudioBuffer(post.id, post.url);
+          }
+        });
+      //prioritize first buffer
+      //debounce in case user starts aplying a currently loading buffer?
+      promises?.length &&
+        Promise.all(promises).then(() => console.info("Buffers preloaded!"));
+    } catch (e: any) {
+      console.error("Couldn't pre-load audio buffers: ", e.message);
+    }
+  }, [posts]);
 
   return (
     <PostContext.Provider value={{ posts, isLoading, error, service }}>

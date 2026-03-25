@@ -1,6 +1,10 @@
 import { AnimatedCount } from "@/components/ui/AnimtedCount";
 import { uploadToS3, UserProfile, UserService } from "@/service/user";
-import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  FontAwesome,
+  Ionicons,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import React, { ReactNode, useCallback, useState } from "react";
 import {
@@ -16,7 +20,6 @@ import Animated, {
   FadeInDown,
   FadeInRight,
   LinearTransition,
-  ZoomIn,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import S3Image from "./S3Image";
@@ -124,32 +127,24 @@ const AccountProfile = ({
         style={styles.header}
       >
         <View style={styles.avatarColumn}>
-          {avatarKey ? (
-            <View style={styles.imageContainer}>
+          <View style={styles.imageContainer}>
+            {avatarKey ? (
               <S3Image source={avatarKey} style={styles.avatar} />
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => setModalVisible(true)}
-              >
-                <FontAwesome
-                  style={styles.editIcon}
-                  name="pencil-square-o"
-                  size={20}
-                  color="black"
-                />
-              </TouchableOpacity>
-            </View>
-          ) : (
+            ) : (
+              <Ionicons name="person-circle-outline" color="#999" size={90} />
+            )}
             <TouchableOpacity
-              style={styles.placeholder}
-              onPress={() => setModalVisible(true)}
               activeOpacity={0.7}
+              onPress={() => setModalVisible(true)}
             >
-              <Animated.View entering={ZoomIn.delay(400)}>
-                <MaterialCommunityIcons name="plus" color="#999" size={28} />
-              </Animated.View>
+              <FontAwesome
+                style={styles.editIcon}
+                name="pencil-square-o"
+                size={20}
+                color="black"
+              />
             </TouchableOpacity>
-          )}
+          </View>
         </View>
 
         <Animated.View
