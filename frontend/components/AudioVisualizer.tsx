@@ -2,11 +2,17 @@ import { Canvas, Path, Skia } from "@shopify/react-native-skia";
 import React, { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
-import AudioProvider from "./AudioManager";
+import AudioProvider from "../audio/AudioManager";
 
 const FFT_SIZE = 512;
 
-export default function SkiaVisualizer({ isPlaying }: { isPlaying: boolean }) {
+export default function SkiaVisualizer({
+  isPlaying,
+  id,
+}: {
+  isPlaying: boolean;
+  id: number;
+}) {
   const size = useSharedValue({ width: 0, height: 0 });
   const waveformPath = useSharedValue(Skia.Path.Make());
   const spectrumPath = useSharedValue(Skia.Path.Make());
@@ -18,10 +24,10 @@ export default function SkiaVisualizer({ isPlaying }: { isPlaying: boolean }) {
     let raf: number = 0;
 
     if (isPlaying) {
-      console.log("Analyzer on");
+      console.info("Analyzer rendering... ", id);
       raf = requestAnimationFrame(loop);
     } else {
-      console.info("Analyzer off");
+      console.info("Analyzer off... ", id);
       cancelAnimationFrame(raf);
     }
 

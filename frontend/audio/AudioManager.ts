@@ -7,6 +7,16 @@ import {
 
 export type ActivePlayer = AudioBufferSourceNode & { id: number };
 
+/**
+ * Singleton class controlling global audio controls through react-native-audio-api.
+ *
+ * Provides methods for loading, starting, pausing and stopping audio playback.
+ *
+ * The audio context must be connected in this order: `context -> analyzer -> buffer -> output`
+ * as described here: @see https://docs.swmansion.com/react-native-audio-api/docs/core/base-audio-context
+ *
+ * @see {AudioContext}
+ */
 class AudioProvider {
   public audioContext;
   public playerNode: ActivePlayer | null;
@@ -15,6 +25,8 @@ class AudioProvider {
   private onPositionChangedCallback: (value: number) => void;
   public analyzer: AnalyserNode | null = null;
   public id: number | null = null;
+  //Local memoery cache for storing pre-loaded buffers
+  private audioBufferMap = new Map<number, AudioBuffer>();
   constructor() {
     this.audioContext = new AudioContext();
     this.playerNode = null;
@@ -23,7 +35,15 @@ class AudioProvider {
     this.onPositionChangedCallback = () => {};
   }
 
+  public async preloadAudioBuffer(id: number, url: string) {
+    console.info(`Preloading audio buffer by id: ${id}`);
+    const audioBuffer = await this.audioContext.decodeAudioData(url);
+    this.audioBufferMap.set(id, audioBuffer);
+    return audioBuffer;
+  }
+
   public pause() {
+    if (!this.playerNode) return;
     this.playerNode?.stop();
     this.audioContext.suspend();
   }
@@ -36,9 +56,10 @@ class AudioProvider {
 
   public resume(id: number, newTime?: number) {
     this.createBufferSourceNode(id);
-    this.audioContext.resume();
-    this.playerNode?.start(0, newTime || this.currentPosition);
+    //update position for playback
     if (newTime) this.currentPosition = newTime;
+    this.audioContext.resume();
+    this.playerNode?.start(0, this.currentPosition);
   }
 
   public start(id: number) {
@@ -56,16 +77,18 @@ class AudioProvider {
     onPositionChangedCallback: (value: number) => void,
   ) {
     if (this.playerNode?.id === id) {
-      console.warn("Player already set with id: " + this.playerNode?.id);
+      console.warn("Player already set with id: ", this.playerNode?.id);
       return;
     }
     try {
       if (this.playerNode) this.clearActivePlayer();
-      const audioBuffer = await this.audioContext.decodeAudioData(url);
-      this.audioBuffer = audioBuffer;
+      //only fetch buffer if not pre-loaded
+      let buffer = this.audioBufferMap.get(id);
+      if (!buffer) buffer = await this.preloadAudioBuffer(id, url);
+      this.audioBuffer = buffer;
       this.onPositionChangedCallback = onPositionChangedCallback;
     } catch (e) {
-      console.warn("Error setting new active player:", e);
+      console.error(`Error setting new active player: ${e}`, "error");
       throw e;
     }
   }
@@ -73,8 +96,7 @@ class AudioProvider {
   private createBufferSourceNode(id: number) {
     const playerNode = this.audioContext.createBufferSource();
     playerNode.buffer = this.audioBuffer;
-    const analyzer = this.createAnalyser();
-    playerNode.connect(analyzer);
+    playerNode.connect(this.createAnalyser());
     playerNode.onPositionChanged = (ev) => {
       this.currentPosition = ev.value;
       this.onPositionChangedCallback(ev.value);
@@ -85,9 +107,11 @@ class AudioProvider {
   }
 
   public clearActivePlayer() {
-    console.log("Clearing active player...");
+    console.info("Clearing active player... ", this.playerNode?.id);
     this.stop();
     this.playerNode = null;
+    this.analyzer = null;
+    this.audioBuffer = null;
   }
 
   private createAnalyser() {
@@ -97,6 +121,10 @@ class AudioProvider {
     analyzer.connect(this.audioContext.destination);
     this.analyzer = analyzer;
     return analyzer;
+  }
+
+  public hasAudioBuffer(id: number) {
+    return this.audioBufferMap.has(id);
   }
 }
 

@@ -15,7 +15,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import AudioProvider from "./AudioManager";
+import AudioProvider from "../audio/AudioManager";
 import AudioVisualizer from "./AudioVisualizer";
 import S3Image from "./S3Image";
 import { ThemedText } from "./themed-text";
@@ -66,18 +66,17 @@ const AudioPostComponent: React.FC<Post> = ({
   /**
    * Callback for updating the position of various ui elements related to audio tracking.
    */
-  const updateValues = useCallback(
-    (newPosition: number) => {
-      duration.value = AudioProvider.audioBuffer?.buffer?.duration || 0;
-      position.value = newPosition || 0;
-      progress.value = position.value / duration.value;
-      //Update thumb position as song progresses
-      thumbPosition.value =
-        (position.value / duration.value) * progressContainerWidth -
-        THUMB_SIZE / 2;
-    },
-    [duration, position, progress, thumbPosition, progressContainerWidth],
-  );
+  const updateValues = (newPosition: number) => {
+    if (!newPosition) return;
+    const durationValue = AudioProvider.audioBuffer?.buffer?.duration || 0;
+    duration.value = durationValue;
+    const positionValue = newPosition || 0;
+    position.value = positionValue;
+    progress.value = positionValue / durationValue || 0;
+    //Update thumb position as song progresses
+    thumbPosition.value =
+      (positionValue / durationValue) * progressContainerWidth - THUMB_SIZE / 2;
+  };
 
   //Gesture for handling seeking
   const panGesture = Gesture.Pan()
@@ -112,6 +111,7 @@ const AudioPostComponent: React.FC<Post> = ({
       //Seek to new timestamp of song
       const newTime =
         progress.value * (AudioProvider.audioBuffer?.buffer.duration || 0);
+      updateValues(newTime);
       AudioProvider.updatePosition(newTime);
       AudioProvider.resume(id, newTime);
       setIsPlaying(true);
@@ -143,16 +143,18 @@ const AudioPostComponent: React.FC<Post> = ({
       AudioProvider.pause();
       setIsPlaying(false);
     } else {
+      //initialize new node
       if (AudioProvider.playerNode?.id !== id) {
         setIsLoadingAudio(true);
         await AudioProvider.setActivePlayer(id, url, updateValues);
         AudioProvider.start(id);
         setDurationText(AudioProvider.audioBuffer?.buffer.duration || 0);
+        //just resume the player
       } else AudioProvider.resume(id);
       setIsPlaying(true);
       setIsLoadingAudio(false);
     }
-  }, [isPlaying]);
+  }, [isPlaying, isLoadingAudio]);
 
   //Animated thumb
   const thumbStyle = useAnimatedStyle(() => ({
@@ -181,7 +183,7 @@ const AudioPostComponent: React.FC<Post> = ({
       {image && <Image source={{ uri: image }} style={styles.image} />}
       {!image && (
         <View style={{ flex: 1, padding: 16 }}>
-          <AudioVisualizer isPlaying={isPlaying} />
+          <AudioVisualizer isPlaying={isPlaying} id={id} />
         </View>
       )}
 
