@@ -4,6 +4,7 @@
  * Module dependencies.
  */
 
+import chalk from "chalk";
 import "dotenv/config";
 import { createServer } from "http";
 import app from "../dist/app.js";
@@ -75,14 +76,21 @@ function onError(error) {
  */
 
 function onListening() {
-  var addr = server.address();
-  var bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
-  console.log("Listening on " + bind);
-  console.info("Running with node env: ", process.env.NODE_ENV);
+  console.log(chalk.green("Listening on port: " + port));
+  console.info(chalk.cyan("Running with node env: ", process.env.NODE_ENV));
   console.info(
-    "Running with s3 config: ",
-    process.env.AWS_REGION,
-    process.env.S3_IMAGES_BUCKET,
-    process.env.S3_AUDIO_FILES_BUCKET,
+    chalk.magenta(
+      "IAM role credentials provided: ",
+      typeof process.env.IAM_USER_AWS_ACCESS_KEY_ID === "string" &&
+        typeof process.env.IAM_USER_AWS_SECRET_ACCESS_KEY === "string",
+    ),
+  );
+  console.info(
+    chalk.magenta(
+      "Running with s3 config: ",
+      process.env.AWS_REGION,
+      process.env.S3_IMAGES_BUCKET,
+      process.env.S3_AUDIO_FILES_BUCKET,
+    ),
   );
 }
