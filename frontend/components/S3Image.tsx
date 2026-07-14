@@ -1,7 +1,8 @@
 import { getUrl } from "aws-amplify/storage";
 import Constants from "expo-constants";
+import { Image } from "expo-image";
 import { useEffect, useState } from "react";
-import { Image, ImageStyle, StyleProp } from "react-native";
+import { ImageStyle, StyleProp } from "react-native";
 
 const { imagesBucket } = Constants.expoConfig?.extra || {};
 
@@ -41,5 +42,11 @@ export default function S3Image({
     if (source && !image && !isLoading) getImageFromS3(source);
   }, [source, image, isLoading]);
 
-  return <>{image && <Image source={{ uri: image }} style={style} />}</>;
+  return (
+    <>
+      {image && (
+        <Image source={{ uri: image, cacheKey: source }} style={style} />
+      )}
+    </>
+  );
 }
