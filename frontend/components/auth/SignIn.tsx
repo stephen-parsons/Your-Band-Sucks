@@ -42,8 +42,8 @@ export default function SignIn() {
   } = useForm({ mode: "onChange" });
 
   if (showConfirmation) {
-    //if ther has not previously confirmed thier email
-    //they need to do it ehre before they san sign in
+    //if they have not previously confirmed thier email
+    //they need to do it here before they can sign in
     //they may need to revisit this screen after confirming
     return (
       <ConfirmSignUp

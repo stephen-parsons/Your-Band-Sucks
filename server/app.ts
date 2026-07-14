@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -50,13 +51,13 @@ app.use(function (
 });
 
 process.on("SIGINT", async () => {
-  console.info("Closing prisma connection...");
+  console.info(chalk.red("\nClosing prisma connection...\n"));
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
-  console.info("Closing prisma connection...");
+  console.info(chalk.red("\nClosing prisma connection...\n"));
   await prisma.$disconnect();
   process.exit(0);
 });

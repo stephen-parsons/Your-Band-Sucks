@@ -1,4 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
+import chalk from "chalk";
 import "dotenv/config";
 import { PrismaClient } from "./generated/prisma/client";
 
@@ -8,6 +9,6 @@ const adapter = new PrismaPg({ connectionString });
 
 const prisma = new PrismaClient({ adapter });
 
-console.info("Created new prisma client");
+console.info(chalk.greenBright("Created new prisma client!\n"));
 
 export { prisma };

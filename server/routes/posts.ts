@@ -17,7 +17,6 @@ const router = express.Router();
 router.use(cognitoAuthorizer);
 
 router.get("/", async (req: AuthenticatedRequest, res) => {
-  //todo: get presignedUrls for audio streaming?
   try {
     const posts = await prisma.song.findMany({
       include: {
@@ -39,6 +38,8 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
     });
     const newPosts = await Promise.all(
       posts.map(async (post) => {
+        //todo: get presignedUrls from cloudfront
+        //this is cheaper and faster than s3 presign urls
         const url = await createPresignedUrlWithClientGET({
           key: post.key,
           bucket: BUCKETS.audioFiles,
@@ -63,7 +64,6 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
 
 router.post("/new", async (req: AuthenticatedRequest, res) => {
   const userId = req.userId!;
-  //store url as object key or full url to bucket?
   try {
     const {
       description,
@@ -124,7 +124,6 @@ router.post("/pre-signed-url", async (req: AuthenticatedRequest, res) => {
 });
 
 router.post("/like", async (req: AuthenticatedRequest, res) => {
-  //todo: get userId from jwt during auth
   const userId = req.userId!;
   try {
     const {

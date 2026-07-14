@@ -5,7 +5,8 @@
 1. `npm i` to install npm dependencies
 2. Create a `.env` file in `/server` directory with your database url like: `DATABASE_URL={postgresql_db_url}`. The url for postgresql is usually in the format `postgresql://{username}:{password}@{host}:5432/{db}`. For local instances installed with homebrew `postgresql://localhost:5432/postgres` is usually sufficient.
 3. `brew install postgresql@18` and `brew services start postgresql@18` to run the postgresql server. Check `brew services list | grep postgresql@18` and `psql -d postgres -U {username}` to verify the server is running and accesible. You can stop the server with `brew services stop postgresql@18`
-4. `npm start` to start express server in `watch` mode
+4. `npm watch` to build the server code in `watch` mode
+5. `npm start` to start express server in `watch` mode
 
 ## Prisma setup
 
@@ -27,14 +28,39 @@ AWS access is needed for certain operations, like generating pre-signed urls. Co
 3. Run `aws sso login --profile {your-profile}` in order to login through the aws portal. Alternatively modify `~/.aws/config` to use a default acccount.
 4. Run `aws sts get-caller-identity` to verify your sso was successful.
 
+### Service Credentials
+
+Service credentials for this server to perform AWS operations is powered by an IAM User called `local-api-service`. The long rnning credentials for this IAM User must obtained through the AWS console.
+
 ### Env variables
 
-The following nev variables are needed for Coginito. Add them to your .env file:
+The following nev variables are needed for AWS Services. Add them to your .env file:
 
 ```
+# AWS env vars
 COGNITO_USER_POOL_ID="pool-id"
 COGNITO_CLIENT_ID="client-id"
+COGNITO_IDENTITY_POOL_ID="pool-id"
+S3_IMAGES_BUCKET="bucket"
+S3_AUDIO_FILES_BUCKET="bucket"
+AWS_REGION="us-west-1"
+
+# AWS IAM user
+IAM_USER_AWS_ACCESS_KEY_ID="access_key_id"
+IAM_USER_AWS_SECRET_ACCESS_KEY="access_key"
 ```
+
+## API Testing
+
+Run `npm run ping -- "--path=/path/to/api"` to execute a request against any api endpoint. Proper authentication is required, make sure to provide the variables from above as well as:
+
+```
+//username and password for the test user
+COGNITO_TEST_USER_NAME,
+COGNITO_TEST_USER_PASSWORD,
+```
+
+in your local `.env` file.
 
 ## Troubleshooting
 

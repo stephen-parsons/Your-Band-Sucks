@@ -18,6 +18,7 @@ import { Amplify } from "aws-amplify";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { AWSConfig } from "@/app.config";
 import SignIn from "@/components/auth/SignIn";
 import SignUp from "@/components/auth/SignUp";
 import PageLoader from "@/components/PageLoader";
@@ -31,10 +32,16 @@ const {
   identityPoolId,
   awsRegion,
   imagesBucket,
-} = Constants.expoConfig?.extra || {};
+} = Constants.expoConfig?.extra as AWSConfig;
 
-if (!userPoolId || !userPoolClientId || !identityPoolId)
-  throw new Error("Missing required Cognito configs!!");
+if (
+  !userPoolId ||
+  !userPoolClientId ||
+  !identityPoolId ||
+  !imagesBucket ||
+  !awsRegion
+)
+  throw new Error("Missing required AWS configs!!");
 
 Amplify.configure({
   Auth: {

@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import { RequestHandler } from "express";
 import { AuthenticatedRequest } from ".";
 import { prisma } from "./prisma";
@@ -18,25 +19,30 @@ export const cognitoAuthorizer: RequestHandler = async (req, res, next) => {
     //add the cognitoId to the request
     (req as AuthenticatedRequest).cognitoId = result.sub;
 
-    //don't check for the app userId if creating a new account
-    if (unauthorizedPaths.includes(req.path)) {
-      console.info("Skipping userId lookup for cognitoId: ", result.sub);
-      return next();
-    }
-
     const user = await prisma.user.findFirst({
-      where: {
-        cognitoId: result.sub,
-      },
+      where: { cognitoId: { equals: result.sub } },
       select: {
         id: true,
       },
     });
-    if (!user || user === null) throw new Error("No user found!!!");
+
+    if (!user || user === null) {
+      //don't check for the app userId if creating a new account
+      if (unauthorizedPaths.includes(req.path)) {
+        console.info("Skipping userId lookup for cognitoId: ", result.sub);
+        return next();
+      }
+      throw new Error("No user found!!!");
+    }
 
     //add the userId to the request
     (req as AuthenticatedRequest).userId = user.id;
-    console.log("Found userId and cognitoId: ", user.id, result.sub);
+    console.log(
+      "Found userId: ",
+      chalk.cyan(user.id),
+      " and cognitoId: ",
+      chalk.cyan(result.sub),
+    );
     next();
   } catch (error: any) {
     console.error(error);

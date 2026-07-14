@@ -25,7 +25,7 @@ class AudioProvider {
   private onPositionChangedCallback: (value: number) => void;
   public analyzer: AnalyserNode | null = null;
   public id: number | null = null;
-  //Local memoery cache for storing pre-loaded buffers
+  //Local memory cache for storing pre-loaded buffers
   private audioBufferMap = new Map<number, AudioBuffer>();
   constructor() {
     this.audioContext = new AudioContext();
@@ -42,6 +42,17 @@ class AudioProvider {
     return audioBuffer;
   }
 
+  /**
+   * Either retrieves buffer from cache or loads from remote url and caches after.
+   * @param id id for AudioBuffer
+   * @param url remote url for AudioBuffer
+   */
+  private async getAudioBuffer(id: number, url: string) {
+    let buffer = this.audioBufferMap.get(id);
+    if (!buffer) buffer = await this.preloadAudioBuffer(id, url);
+    return buffer;
+  }
+
   public pause() {
     if (!this.playerNode) return;
     this.playerNode?.stop();
@@ -49,6 +60,7 @@ class AudioProvider {
   }
 
   public stop() {
+    if (!this.playerNode) return;
     this.playerNode?.stop();
     this.playerNode?.disconnect();
     this.audioContext.close();
@@ -82,13 +94,10 @@ class AudioProvider {
     }
     try {
       if (this.playerNode) this.clearActivePlayer();
-      //only fetch buffer if not pre-loaded
-      let buffer = this.audioBufferMap.get(id);
-      if (!buffer) buffer = await this.preloadAudioBuffer(id, url);
-      this.audioBuffer = buffer;
+      this.audioBuffer = await this.getAudioBuffer(id, url);
       this.onPositionChangedCallback = onPositionChangedCallback;
     } catch (e) {
-      console.error(`Error setting new active player: ${e}`, "error");
+      console.error(`Error setting new active player: ${e}`);
       throw e;
     }
   }

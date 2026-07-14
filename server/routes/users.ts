@@ -43,7 +43,7 @@ router.get("/current", async (req: AuthenticatedRequest, res) => {
     });
 
     if (!user) {
-      console.info("User not found, create an new user!");
+      console.warn("User not found, create an new user!");
       return res.status(200).json(null);
     }
 

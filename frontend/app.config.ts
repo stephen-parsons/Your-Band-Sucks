@@ -1,6 +1,19 @@
 import "dotenv/config";
 import { ConfigContext } from "expo/config";
 
+export interface AWSConfig {
+  userPoolId: string;
+  userPoolClientId: string;
+  identityPoolId: string;
+  awsRegion: string;
+  imagesBucket: string;
+  audioFilesBucket: string;
+}
+
+export type AppConfig = AWSConfig & {
+  apiUrl: string;
+};
+
 export default ({ config }: ConfigContext) => ({
   ...config,
   extra: {
