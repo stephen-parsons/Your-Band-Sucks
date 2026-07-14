@@ -6,6 +6,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import config from "../config";
+import { credentials } from "./IdentityService";
 
 export const REGION = config.aws.region;
 export const BUCKETS = config.aws.bucket;
@@ -22,13 +23,15 @@ interface S3RequestParams {
   bucket: (typeof BUCKETS)[keyof typeof BUCKETS];
 }
 
+//singleton
+const client = new S3Client({ region: REGION, credentials });
+
 export async function createPresignedUrlWithClientPUT({
   bucket,
   key,
   contentType,
 }: PreSignedUrlRequestParams): Promise<string> {
   try {
-    const client = new S3Client({ region: REGION });
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
@@ -41,12 +44,12 @@ export async function createPresignedUrlWithClientPUT({
   }
 }
 
+//todo: deprecate in favor of cloudfront urls
 export async function createPresignedUrlWithClientGET({
   bucket,
   key,
 }: PreSignedUrlRequestParams): Promise<string> {
   try {
-    const client = new S3Client({ region: REGION });
     const command = new GetObjectCommand({
       Bucket: bucket,
       Key: key,
@@ -63,7 +66,6 @@ export async function deleteS3Object({
   key,
 }: S3RequestParams): Promise<void> {
   try {
-    const client = new S3Client({ region: REGION });
     const command = new DeleteObjectCommand({
       Bucket: bucket,
       Key: key,
