@@ -54,7 +54,6 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
         return newPost;
       }),
     );
-    console.info("POSTS", newPosts);
     res.status(200).json(newPosts);
   } catch (error) {
     console.error(error);
@@ -87,7 +86,6 @@ router.post("/new", async (req: AuthenticatedRequest, res) => {
         key,
       },
     });
-    console.info("NEW SONG", newSong);
     res.status(200).json(newSong);
   } catch (e) {
     console.error(e);
@@ -181,7 +179,6 @@ router.get("/most-liked", async (req, res) => {
       },
       take: 10,
     });
-    console.info("MOST LIKED", posts);
     res.status(200).json(posts);
   } catch (error) {
     console.error(error);
@@ -201,7 +198,6 @@ router.get("/least-liked", async (req, res) => {
       },
       take: 10,
     });
-    console.info("LEAST LIKED", posts);
     res.status(200).json(posts);
   } catch (error) {
     console.error(error);

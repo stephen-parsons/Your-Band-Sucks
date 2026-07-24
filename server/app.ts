@@ -3,7 +3,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import createError from "http-errors";
-import logger from "morgan";
+import morganBody from "morgan-body";
 import path from "path";
 import { prisma } from "./prisma";
 import postsRouter from "./routes/posts";
@@ -16,13 +16,14 @@ const app: express.Application = express();
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "jade");
 
-app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 //todo: restrict cors in production
 app.use(cors());
+
+morganBody(app, { prettify: true });
 
 app.use("/health", (req, res) => res.send("Hello World!"));
 app.use("/users", usersRouter);

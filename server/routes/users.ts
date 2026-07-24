@@ -64,7 +64,6 @@ router.get("/current", async (req: AuthenticatedRequest, res) => {
       orderBy: { songs: { _count: "desc" } },
     });
     const result = { ...user, tags: mapTagResults(userTags) };
-    console.info("USER", result);
     res.status(200).json(result);
   } catch (e) {
     console.error(e);
@@ -89,7 +88,6 @@ router.post("/new", async (req, res) => {
     const newUser = await prisma.user.create({
       data: { email, name, username, cognitoId: sub },
     });
-    console.info("USER", newUser);
     res.status(200).json(newUser);
   } catch (e: any) {
     console.error(e);
@@ -155,7 +153,6 @@ router.post("/avatar/update", async (req: AuthenticatedRequest, res) => {
         avatar: true,
       },
     });
-    console.info("AVATAR", nawAvatar);
     res.status(200).json(nawAvatar);
   } catch (e: any) {
     console.error(e);
@@ -199,11 +196,10 @@ router.post("/avatar/update/delete", async (req: AuthenticatedRequest, res) => {
         id: true,
       },
     });
-    console.info("Avatar deleted for: ", newUser);
     res.status(200).json(newUser);
   } catch (e: any) {
     console.error(e);
-    res.status(500).json({ error: "Failed to update avatar" });
+    res.status(500).json({ error: "Failed to delete avatar" });
   }
 });
 

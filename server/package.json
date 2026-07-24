@@ -36,6 +36,7 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^25.3.0",
     "amazon-cognito-identity-js": "^6.3.20",
+    "morgan-body": "^2.6.9",
     "typescript": "^5.9.3"
   }
 }
