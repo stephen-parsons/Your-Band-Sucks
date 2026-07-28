@@ -9,6 +9,10 @@ const adapter = new PrismaPg({ connectionString });
 
 const prisma = new PrismaClient({ adapter });
 
-console.info(chalk.greenBright("Created new prisma client!\n"));
+console.info(
+  "✅",
+  "Created new prisma client: ",
+  chalk.green(connectionString),
+);
 
 export { prisma };

@@ -76,21 +76,21 @@ function onError(error) {
  */
 
 function onListening() {
-  console.log(chalk.green("Listening on port: " + port));
-  console.info(chalk.cyan("Running with node env: ", process.env.NODE_ENV));
+  const credsProvided =
+    typeof process.env.IAM_USER_AWS_ACCESS_KEY_ID === "string" &&
+    typeof process.env.IAM_USER_AWS_SECRET_ACCESS_KEY === "string";
+  console.log("✅", "Listening on port: " + chalk.green(port));
   console.info(
-    chalk.magenta(
-      "IAM role credentials provided: ",
-      typeof process.env.IAM_USER_AWS_ACCESS_KEY_ID === "string" &&
-        typeof process.env.IAM_USER_AWS_SECRET_ACCESS_KEY === "string",
-    ),
+    "✅",
+    "Running with node env: ",
+    chalk.green(process.env.NODE_ENV),
   );
+  console.info(credsProvided ? "✅" : "❌", "IAM role credentials provided");
   console.info(
-    chalk.magenta(
-      "Running with s3 config: ",
-      process.env.AWS_REGION,
-      process.env.S3_IMAGES_BUCKET,
-      process.env.S3_AUDIO_FILES_BUCKET,
-    ),
+    "✅",
+    "Running with s3 config: ",
+    chalk.green(process.env.AWS_REGION),
+    chalk.green(process.env.S3_IMAGES_BUCKET),
+    chalk.green(process.env.S3_AUDIO_FILES_BUCKET),
   );
 }

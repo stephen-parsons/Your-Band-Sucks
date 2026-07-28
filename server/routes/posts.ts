@@ -6,6 +6,8 @@ import { cognitoAuthorizer } from "../authorizer";
 import config from "../config";
 import { SongCreateInput } from "../generated/prisma/models";
 import { prisma } from "../prisma";
+import { userPostsCacheKey } from "../redis/keys";
+import { getCacheItem, setCacheItem } from "../redis/redis";
 import {
   BUCKETS,
   createPresignedUrlWithClientGET,
@@ -17,6 +19,13 @@ const router = express.Router();
 router.use(cognitoAuthorizer);
 
 router.get("/", async (req: AuthenticatedRequest, res) => {
+  const cachedItems = await getCacheItem(userPostsCacheKey(req.userId!));
+  if (cachedItems) {
+    return res.status(200).json(cachedItems);
+  }
+
+  console.warn("User posts cache not found, fetching posts...");
+
   try {
     const posts = await prisma.song.findMany({
       include: {
@@ -54,6 +63,7 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
         return newPost;
       }),
     );
+    await setCacheItem(userPostsCacheKey(req.userId!), newPosts);
     res.status(200).json(newPosts);
   } catch (error) {
     console.error(error);

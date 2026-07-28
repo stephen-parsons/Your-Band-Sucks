@@ -24,7 +24,8 @@
     "jade": "~1.11.0",
     "morgan": "~1.9.1",
     "pg": "^8.18.0",
-    "prisma": "^7.4.1"
+    "prisma": "^7.4.1",
+    "redis": "^6.1.0"
   },
   "devDependencies": {
     "@aws-sdk/client-cognito-identity": "^3.1085.0",

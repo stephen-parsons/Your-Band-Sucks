@@ -1,5 +1,6 @@
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { CognitoIdTokenPayload } from "aws-jwt-verify/jwt-model";
+import { authorizerLogger } from "../authorizer";
 
 if (!process.env.COGNITO_USER_POOL_ID || !process.env.COGNITO_CLIENT_ID)
   throw new Error("Missing required cognito env variables");
@@ -25,10 +26,10 @@ export type IdTokenClaimsPayload = CognitoIdTokenPayload & {
 export async function verifyAccessToken(token: string) {
   try {
     const payload = await accessTokenVerifier.verify(token);
-    console.log("Token is valid. Payload:", payload);
+    authorizerLogger.info("Token is valid. Payload:", payload);
     return payload;
   } catch (error) {
-    console.error("Token invalid:", error);
+    authorizerLogger.error("Token invalid:", error);
     throw new Error("Unauthorized");
   }
 }
@@ -36,10 +37,10 @@ export async function verifyAccessToken(token: string) {
 export async function verifyIdToken(token: string) {
   try {
     const payload = await idTokenVerifier.verify(token);
-    console.log("Token is valid. Payload:", payload);
+    authorizerLogger.info("Token is valid. Payload:", payload);
     return payload;
   } catch (error) {
-    console.error("Token invalid:", error);
+    authorizerLogger.error("Token invalid:", error);
     throw new Error("Unauthorized");
   }
 }
