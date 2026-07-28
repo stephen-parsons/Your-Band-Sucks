@@ -31,10 +31,31 @@ class CacheItem<T> {
 export let client: RedisClientType | null = null;
 
 /**
+ * Starts redis by inititiating a new connection to the using a `RedisClient`.
+ * Does not throw if unable to connect, only logs an error.
+ * This allows the app to be started and run without redis as a fallback.
+ */
+export async function startRedis() {
+  connectCache()
+    .then(() => {
+      healthCheck().then((res) => console.info("Redis Health:", res));
+    })
+    .catch((e) => {
+      console.clear();
+      console.warn(
+        "⚠️ ",
+        "Starting server without Redis: ",
+        chalk.red(process.env.REDIS_URL),
+      );
+      console.error("🚨", e);
+    });
+}
+
+/**
  * Create a new rediw client and connect to the cache using env `REDIS_URL`.
  * Should only be called once at startup.
  */
-export async function connectCache(): Promise<void> {
+async function connectCache(): Promise<void> {
   if (!client) {
     client = createClient({
       url: process.env.REDIS_URL || "redis://localhost:6379",
