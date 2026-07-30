@@ -4,6 +4,12 @@ import { createClient, RedisClientType } from "redis";
 //1 hr in seconds
 export const DEFAULT_EXPIRATION = 3600;
 
+const DFEAULT_MAX_CONNECTION_RETRIES = 2;
+
+const MAX_CONNECTION_RETRIES = process.env.REDIS_MAX_CONNECTION_RETRIES
+  ? Number(process.env.REDIS_MAX_CONNECTION_RETRIES)
+  : DFEAULT_MAX_CONNECTION_RETRIES;
+
 interface HealthCheck {
   timestap: string;
   response: string | null;
@@ -64,9 +70,11 @@ async function connectCache(): Promise<void> {
         connectTimeout: 10000,
         // Strategy for handling drops mid-runtime
         reconnectStrategy: (retries: number) => {
-          if (retries > 10) {
-            // Stop retrying after 10 consecutive failures to prevent memory leaks
-            return new Error("Redis reconnection attempts exhausted");
+          if (retries > MAX_CONNECTION_RETRIES) {
+            // Stop retrying after `MAX_CONNECTION_RETRIES` consecutive failures to prevent memory leaks
+            return new Error(
+              `Redis reconnection attempts exhausted: ${MAX_CONNECTION_RETRIES}`,
+            );
           }
           // Exponential backoff: 100ms, 200ms, 400ms, up to a max of 3000ms
           return Math.min(retries * 100, 3000);
