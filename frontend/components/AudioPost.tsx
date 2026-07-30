@@ -176,7 +176,7 @@ const AudioPostComponent: React.FC<Post> = ({
     //initialize new node if current `playerNode` does not match by id
     if (AudioProvider.playerNode?.id !== id) {
       setIsLoadingAudio(true);
-      await AudioProvider.setActivePlayer(id, url, updateValues, onEndCallback);
+      await AudioProvider.setActivePlayer(id, url, updateValues);
       AudioProvider.start(id);
       setDurationText(AudioProvider.audioBuffer?.buffer.duration || 0);
       //otherwise just resume the current player
