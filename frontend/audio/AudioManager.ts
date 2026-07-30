@@ -12,7 +12,7 @@ export type ActivePlayer = AudioBufferSourceNode & { id: number };
  *
  * Provides methods for loading, starting, pausing and stopping audio playback.
  *
- * The audio context must be connected in this order: `context -> analyzer -> buffer -> output`
+ * The audio context must be connected in this order: `sourceNode -> analyzerNode -> audioDestinationNode`
  * as described here: @see https://docs.swmansion.com/react-native-audio-api/docs/core/base-audio-context
  *
  * @see {AudioContext}
@@ -35,6 +35,13 @@ class AudioProvider {
     this.onPositionChangedCallback = () => {};
   }
 
+  /**
+   * Downloads an audio buffer into memory from a remote url
+   * Sets the audio buffer into the `audioBufferMap`
+   * @param id uniqie for the audio buffer
+   * @param url remote url to download buffer
+   * @returns the audio buffer
+   */
   public async preloadAudioBuffer(id: number, url: string) {
     console.info(`Preloading audio buffer by id: ${id}`);
     const audioBuffer = await this.audioContext.decodeAudioData(url);
@@ -83,6 +90,13 @@ class AudioProvider {
     this.currentPosition = position;
   }
 
+  /**
+   * Sets the active player by updating the `audioBuffer` and `onPositionChangedCallback`
+   * @param id id for AudioBuffer
+   * @param url remote url for AudioBuffer
+   * @param onPositionChangedCallback
+   * @returns void
+   */
   public async setActivePlayer(
     id: number,
     url: string,
@@ -102,10 +116,19 @@ class AudioProvider {
     }
   }
 
+  /**
+   * Create a new buffer source node, `this.playerNode`
+   * This must be done every time an audio source is started or resumed
+   * @param id id for AudioBuffer
+   */
   private createBufferSourceNode(id: number) {
+    //Create a new source node, this is the first node in the chain and provides the audio source
     const playerNode = this.audioContext.createBufferSource();
+    //Set the buffer on the source node
     playerNode.buffer = this.audioBuffer;
+    //Connect the source node to the analyzer for visualizations
     playerNode.connect(this.createAnalyser());
+    //Update the position changed callback for the new audio source
     playerNode.onPositionChanged = (ev) => {
       this.currentPosition = ev.value;
       this.onPositionChangedCallback(ev.value);
@@ -123,6 +146,10 @@ class AudioProvider {
     this.audioBuffer = null;
   }
 
+  /**
+   * Creates a new analyzer node
+   * @returns a new analyzer node
+   */
   private createAnalyser() {
     const analyzer = this.audioContext.createAnalyser();
     analyzer.fftSize = 512;

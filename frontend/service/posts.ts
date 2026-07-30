@@ -1,4 +1,4 @@
-import { User } from "@/components/PostProvider";
+import { User } from "@/service/user";
 import Constants from "expo-constants";
 
 export const SERVER_URL = Constants.expoConfig?.extra?.["apiUrl"];
@@ -45,8 +45,8 @@ export interface Post {
   tags: Tag[];
   user: User;
   /**
-   * Whether or not the song has been liked or disliked
-   * Undefined if song has no like/dislike status
+   * Whether or not the song has been liked or disliked.
+   * `undefined` if song has no like/dislike status.
    */
   like?: Like;
   likeCount: number;
@@ -63,8 +63,13 @@ export type Posts = Post[];
 
 export class PostService {
   public apiClient;
-  constructor(apiClient: typeof fetch) {
+  private updateLikeStatusState;
+  constructor(
+    apiClient: typeof fetch,
+    updateLikeStatusState?: (id: number, status: Like) => void,
+  ) {
     this.apiClient = apiClient;
+    this.updateLikeStatusState = updateLikeStatusState;
   }
 
   public async getMostPopularPosts() {
@@ -150,6 +155,7 @@ export class PostService {
     if (!res.ok) {
       throw new Error("Failed to update like status");
     }
+    this.updateLikeStatusState?.(songId, liked ? "like" : "dislike");
     return await res.json();
   }
 }

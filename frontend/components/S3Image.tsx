@@ -6,9 +6,7 @@ import { ImageStyle, StyleProp } from "react-native";
 
 const { imagesBucket } = Constants.expoConfig?.extra || {};
 
-if (!imagesBucket) throw new Error("bad s3 bucket config!!");
-
-const localCache = new Map<string, string>();
+if (!imagesBucket) throw new Error("Missing s3 images bucket config");
 
 export default function S3Image({
   style,
@@ -18,6 +16,7 @@ export default function S3Image({
   source: string;
 }) {
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const [image, setImage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,9 +36,11 @@ export default function S3Image({
         setImage(url.url.toString());
       } catch (e) {
         setIsLoading(false);
+        setError(e as Error);
+        console.error(e);
       }
     }
-    if (source && !image && !isLoading) getImageFromS3(source);
+    if (source && !image && !isLoading && !error) getImageFromS3(source);
   }, [source, image, isLoading]);
 
   return (

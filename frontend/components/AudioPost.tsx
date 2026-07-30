@@ -19,10 +19,19 @@ import AudioProvider from "../audio/AudioManager";
 import AudioVisualizer from "./AudioVisualizer";
 import S3Image from "./S3Image";
 import { ThemedText } from "./themed-text";
+import { LikeBar } from "./ui/LikeButton";
 
 const { width, height } = Dimensions.get("window");
 
+const HEIGHT_FULLSCREEN_OFFSET = 240;
+
+export const ITEM_HEIGHT = height - HEIGHT_FULLSCREEN_OFFSET;
+
 const THUMB_SIZE = 14; // same as in styles
+
+function withBoundary(val: number, end: number, start: number = 0) {
+  return val > end ? end : val < start ? start : val;
+}
 
 const AudioPostComponent: React.FC<Post> = ({
   url,
@@ -51,7 +60,9 @@ const AudioPostComponent: React.FC<Post> = ({
   const thumbScale = useSharedValue(1);
   const thumbPosition = useSharedValue(0 - THUMB_SIZE / 2);
 
-  const duration = useSharedValue(0);
+  /**
+   * Current player position - should be kept in sync with `progress`.
+   */
   const position = useSharedValue(0);
 
   /**
@@ -65,20 +76,57 @@ const AudioPostComponent: React.FC<Post> = ({
 
   /**
    * Callback for updating the position of various ui elements related to audio tracking.
+   * Resets the song to the beginning if it finishes playing.
    */
   const updateValues = (newPosition: number) => {
-    if (!newPosition) return;
+    if (typeof newPosition !== "number") return;
     const durationValue = AudioProvider.audioBuffer?.buffer?.duration || 0;
-    duration.value = durationValue;
-    const positionValue = newPosition || 0;
-    position.value = positionValue;
-    progress.value = positionValue / durationValue || 0;
+    position.value = newPosition;
+    progress.value = newPosition / durationValue;
     //Update thumb position as song progresses
     thumbPosition.value =
-      (positionValue / durationValue) * progressContainerWidth - THUMB_SIZE / 2;
+      (newPosition / durationValue) * progressContainerWidth - THUMB_SIZE / 2;
+    setPositionText(newPosition);
+
+    //Check if at the end of the buffer
+    //The final onPositionChangedCallback won't fire within the last interval
+    const isNearEnd = durationValue && durationValue - newPosition < 0.1;
+    if (isNearEnd) {
+      onEndCallback();
+    }
   };
 
-  //Gesture for handling seeking
+  /**
+   * Callback that fires when the song is finished.
+   */
+  const onEndCallback = useCallback(() => {
+    AudioProvider.audioContext.state === "running" && AudioProvider.stop();
+    AudioProvider.updatePosition(0);
+    updateValues(0);
+    setPositionText(0);
+    setIsPlaying(false);
+  }, []);
+
+  /**
+   * Callback for seeking to new position in the song.
+   * Updates both `AudioProvider` state and ui elements together.
+   * Relies on `progress` shared value for seeking.
+   */
+  const seekToPosition = useCallback(() => {
+    const newTime =
+      progress.value * (AudioProvider.audioBuffer?.buffer.duration || 0);
+    updateValues(newTime);
+    AudioProvider.updatePosition(newTime);
+    AudioProvider.resume(id, newTime);
+    setIsPlaying(true);
+  }, []);
+
+  /**
+   * Pan gesture for handling seking. On start, pause the player.
+   * Get the new seeking position `onUpdate` and update `sharedValues`.
+   * Seek to new position by updating the AudioProvider and ui elements on end.
+   * Must run on JS thread to handle audio management.
+   */
   const panGesture = Gesture.Pan()
     .onStart(() => {
       AudioProvider.pause();
@@ -90,45 +138,26 @@ const AudioPostComponent: React.FC<Post> = ({
       const currPosition = event.absoluteX - progressContainerStartPosition;
       //Update thumb position,
       //Make sure not excede the end of the progress container.
-      thumbPosition.value =
-        currPosition > progressContainerEndPosition
-          ? progressContainerEndPosition
-          : currPosition < 0
-            ? 0
-            : currPosition;
+      thumbPosition.value = withBoundary(
+        currPosition,
+        progressContainerEndPosition,
+      );
       //Calculate progress.
       //make sure not to exceeed the end of the song.
       const newProgress = currPosition / progressContainerWidth;
-      progress.value =
-        newProgress < 0
-          ? 0
-          : newProgress > 1
-            ? 1
-            : currPosition / progressContainerWidth;
+      progress.value = withBoundary(newProgress, 1);
     })
     .onEnd(() => {
       thumbScale.value = withSpring(1);
+      //Reset the player when new progress is begining or ending of song
+      if (progress.value === 1 || progress.value === 0) {
+        onEndCallback();
+        return;
+      }
       //Seek to new timestamp of song
-      const newTime =
-        progress.value * (AudioProvider.audioBuffer?.buffer.duration || 0);
-      updateValues(newTime);
-      AudioProvider.updatePosition(newTime);
-      AudioProvider.resume(id, newTime);
-      setIsPlaying(true);
+      seekToPosition();
     })
     .runOnJS(true);
-
-  useEffect(() => {
-    const positionInterval = setInterval(() => {
-      AudioProvider.currentPosition &&
-        setPositionText(AudioProvider.currentPosition);
-    }, 100);
-
-    // Cleanup function to clear the interval when the component unmounts
-    return () => {
-      clearInterval(positionInterval);
-    };
-  }, []);
 
   //Auto pause if screen unfocused
   useEffect(() => {
@@ -138,23 +167,31 @@ const AudioPostComponent: React.FC<Post> = ({
     }
   }, [isFocused, isPlaying]);
 
+  const pause = useCallback(async () => {
+    AudioProvider.pause();
+    setIsPlaying(false);
+  }, []);
+
+  const play = useCallback(async () => {
+    //initialize new node if current `playerNode` does not match by id
+    if (AudioProvider.playerNode?.id !== id) {
+      setIsLoadingAudio(true);
+      await AudioProvider.setActivePlayer(id, url, updateValues, onEndCallback);
+      AudioProvider.start(id);
+      setDurationText(AudioProvider.audioBuffer?.buffer.duration || 0);
+      //otherwise just resume the current player
+    } else AudioProvider.resume(id);
+    setIsPlaying(true);
+    setIsLoadingAudio(false);
+  }, []);
+
   const handlePlayPause = useCallback(async () => {
     if (isPlaying) {
-      AudioProvider.pause();
-      setIsPlaying(false);
+      pause();
     } else {
-      //initialize new node
-      if (AudioProvider.playerNode?.id !== id) {
-        setIsLoadingAudio(true);
-        await AudioProvider.setActivePlayer(id, url, updateValues);
-        AudioProvider.start(id);
-        setDurationText(AudioProvider.audioBuffer?.buffer.duration || 0);
-        //just resume the player
-      } else AudioProvider.resume(id);
-      setIsPlaying(true);
-      setIsLoadingAudio(false);
+      await play();
     }
-  }, [isPlaying, isLoadingAudio]);
+  }, [isPlaying]);
 
   //Animated thumb
   const thumbStyle = useAnimatedStyle(() => ({
@@ -166,6 +203,11 @@ const AudioPostComponent: React.FC<Post> = ({
     width: progress.value * progressContainerWidth,
   }));
 
+  /**
+   * Converts a number in seconds into a string of format `mm:ss`
+   * @param seconds integer number
+   * @returns `mm:ss` time format string
+   */
   const formatTime = (seconds?: number) => {
     if (!seconds) return "0:00";
     const minutes = Math.floor(seconds / 60);
@@ -219,7 +261,7 @@ const AudioPostComponent: React.FC<Post> = ({
           </ThemedText>
         </View>
       </View>
-      {/* <LikeBar songId={id} like={like} /> */}
+      <LikeBar songId={id} like={like} />
 
       <ThemedText style={styles.description}>{description}</ThemedText>
       <ThemedText style={styles.userName}>Posted by: {name}</ThemedText>
@@ -246,7 +288,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000",
-    minHeight: height - 240,
+    minHeight: ITEM_HEIGHT,
   },
   header: {
     flexDirection: "row",

@@ -1,21 +1,15 @@
 import { useAuthContext } from "@/app/auth";
-import { Posts, PostService } from "@/service/posts";
+import { Like, Posts, PostService } from "@/service/posts";
 import {
   createContext,
   PropsWithChildren,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
 } from "react";
 import AudioProvider from "../audio/AudioManager";
-
-export interface User {
-  name: string;
-  email: string;
-  id: number;
-  avatar?: string;
-}
 
 interface IPostContext {
   posts: Posts | null;
@@ -37,7 +31,22 @@ export function PostContextProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const service = useMemo(() => new PostService(apiClient), [apiClient]);
+  const updateLikeStatus = useCallback(
+    (id: number, status: Like) => {
+      if (!posts) return;
+      const newPosts = [...posts];
+      const newPost = newPosts.find((post) => post.id === id);
+      if (!newPost) return;
+      newPost.like = status;
+      setPosts(newPosts);
+    },
+    [posts],
+  );
+
+  const service = useMemo(
+    () => new PostService(apiClient, updateLikeStatus),
+    [apiClient, updateLikeStatus],
+  );
 
   useEffect(() => {
     async function fetchFeed() {
@@ -57,19 +66,16 @@ export function PostContextProvider({ children }: PropsWithChildren) {
   }, [posts, isAuthenticated, service]);
 
   useEffect(() => {
-    //pre-load audio buffers
+    //pre-load audio buffers in order
     try {
-      const promises =
-        posts &&
-        posts?.map(async (post) => {
+      if (posts) {
+        posts?.forEach(async (post) => {
           if (!AudioProvider.hasAudioBuffer(post.id)) {
-            AudioProvider.preloadAudioBuffer(post.id, post.url);
+            await AudioProvider.preloadAudioBuffer(post.id, post.url);
           }
         });
-      //prioritize first buffer
-      //debounce in case user starts aplying a currently loading buffer?
-      promises?.length &&
-        Promise.all(promises).then(() => console.info("Buffers preloaded!"));
+        console.info("Buffers preloaded!");
+      }
     } catch (e: any) {
       console.error("Couldn't pre-load audio buffers: ", e.message);
     }

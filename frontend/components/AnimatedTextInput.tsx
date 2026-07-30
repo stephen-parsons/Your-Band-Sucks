@@ -105,7 +105,7 @@ const AnimatedTextInput = ({
             value={value}
             onChangeText={onChangeText}
             secureTextEntry={isPassword && !showPassword}
-            autoCapitalize={isPassword ? "none" : "sentences"}
+            autoCapitalize={"none"}
             {...props}
           />
 

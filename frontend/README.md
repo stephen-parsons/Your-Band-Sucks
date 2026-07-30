@@ -42,6 +42,15 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## iOS
+
+1.  For iOS Simulator / Device:
+    Run the compilation command to generate the native `/ios` folder and push the app binary:
+
+```bash
+npx expo run:ios
+```
+
 ## Troubleshooting
 
 Run `npx expo start --clear` to clear out the cache if you are having trouble loading env variables.
