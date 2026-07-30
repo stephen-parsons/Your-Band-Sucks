@@ -10,7 +10,7 @@ const MAX_CONNECTION_RETRIES = process.env.REDIS_MAX_CONNECTION_RETRIES
   ? Number(process.env.REDIS_MAX_CONNECTION_RETRIES)
   : DFEAULT_MAX_CONNECTION_RETRIES;
 
-interface HealthCheck {
+export interface HealthCheck {
   timestap: string;
   response: string | null;
 }
@@ -42,19 +42,19 @@ export let client: RedisClientType | null = null;
  * This allows the app to be started and run without redis as a fallback.
  */
 export async function startRedis() {
-  connectCache()
-    .then(() => {
-      healthCheck().then((res) => console.info("Redis Health:", res));
-    })
-    .catch((e) => {
-      console.clear();
-      console.warn(
-        "⚠️ ",
-        "Starting server without Redis: ",
-        chalk.red(process.env.REDIS_URL),
-      );
-      console.error("🚨", e);
-    });
+  try {
+    await connectCache();
+    const res = await healthCheck();
+    console.info("Redis Health:", res);
+  } catch (e) {
+    console.clear();
+    console.warn(
+      "⚠️ ",
+      "Starting server without Redis: ",
+      chalk.red(process.env.REDIS_URL),
+    );
+    console.error("🚨", e);
+  }
 }
 
 /**
@@ -108,9 +108,14 @@ async function connectCache(): Promise<void> {
  * @returns {Promise<HealthCheck>}
  */
 export async function healthCheck(): Promise<HealthCheck> {
+  // Promise that rejects after 2000 milliseconds
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("Redis ping timed out")), 2000),
+  );
+  const ping = (await Promise.race([client?.ping(), timeout])) as string;
   return {
     timestap: new Date().toISOString(),
-    response: client && (await client.ping()),
+    response: ping,
   };
 }
 
