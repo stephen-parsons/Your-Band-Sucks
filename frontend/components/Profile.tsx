@@ -27,6 +27,19 @@ import { ThemedText } from "./themed-text";
 import { Header } from "./ui/Header";
 import Tag from "./ui/Tag";
 
+//in megabytes
+const MAX_FILE_SIZE = 10;
+
+//in bytes
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE * 1024 * 1024;
+
+class MaxFileSizeError extends Error {
+  constructor() {
+    super();
+    this.message = `Max file size is ${MAX_FILE_SIZE} Mb`;
+  }
+}
+
 const AccountProfile = ({
   name: username,
   avatar: avatarKey,
@@ -50,6 +63,8 @@ const AccountProfile = ({
       Alert.alert("Please select a file");
       return;
     }
+
+    if (file.fileSize ?? 0 > MAX_FILE_SIZE_BYTES) throw new MaxFileSizeError();
 
     try {
       setUploading(true);
@@ -94,7 +109,9 @@ const AccountProfile = ({
         throw new Error(`Upload failed with statu code ${uploadResult.status}`);
     } catch (err) {
       console.error(err);
-      Alert.alert("Upload failed");
+      if (err instanceof MaxFileSizeError) {
+        Alert.alert("Error:", err.message);
+      } else Alert.alert("Upload failed");
     } finally {
       setUploading(false);
       setModalVisible(false);
@@ -103,19 +120,28 @@ const AccountProfile = ({
 
   //TODO: sanitize filename and check file size limit (in bytes)
   const pickFile = useCallback(async () => {
-    // No permission request is necessary for launching the image library
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: "images", // Restrict to images only
-      allowsEditing: true, // Allows user to crop the image
-      aspect: [4, 3], // Optional: aspect ratio for editing
-      quality: 1, // Optional: image quality (0 to 1)
-    });
+    try {
+      // No permission request is necessary for launching the image library
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images", // Restrict to images only
+        allowsEditing: true, // Allows user to crop the image
+        aspect: [4, 3], // Optional: aspect ratio for editing
+        quality: 1, // Optional: image quality (0 to 1)
+      });
 
-    if (!result.canceled) {
-      if (result.assets[0].type !== "image")
-        throw new Error("Only images allowed!");
-      console.info("Picked image file: " + result.assets[0].fileName);
-      setFile(result.assets[0]);
+      const file = result.assets && result.assets[0];
+
+      if (file?.fileSize ?? 0 > MAX_FILE_SIZE_BYTES)
+        throw new MaxFileSizeError();
+
+      if (!result.canceled) {
+        if (file?.type !== "image") throw new Error("Only images allowed!");
+        setFile(result.assets[0]);
+      }
+    } catch (err) {
+      if (err instanceof MaxFileSizeError) {
+        Alert.alert("Error:", err.message);
+      } else Alert.alert("Error picking file");
     }
   }, []);
 

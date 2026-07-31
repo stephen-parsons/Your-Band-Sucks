@@ -18,6 +18,19 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+//in megabytes
+const MAX_FILE_SIZE = 50;
+
+//in bytes
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE * 1024 * 1024;
+
+class MaxFileSizeError extends Error {
+  constructor() {
+    super();
+    this.message = `Max file size is ${MAX_FILE_SIZE} Mb`;
+  }
+}
+
 /**
  * Upload component
  */
@@ -48,21 +61,27 @@ const S3UploadForm: React.FC = () => {
     [title, description, tags],
   );
 
-  //TODO: sanitize filename and check file size limit (in bytes)
+  //TODO: sanitize filename
   const pickFile = useCallback(async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         multiple: false,
       });
 
+      const file = result.assets && result.assets[0];
+
+      if (file?.size ?? 0 > MAX_FILE_SIZE_BYTES) throw new MaxFileSizeError();
+
       if (!result.canceled) {
-        setFile(result.assets[0]);
+        setFile(file);
       } else {
-        console.log("Document selection cancelled");
+        console.warn("Document selection cancelled");
       }
     } catch (err) {
       console.error(err);
-      Alert.alert("Error picking file");
+      if (err instanceof MaxFileSizeError) {
+        Alert.alert("Error:", err.message);
+      } else Alert.alert("Error picking file");
     }
   }, []);
 
@@ -80,6 +99,8 @@ const S3UploadForm: React.FC = () => {
       return;
     }
 
+    if (file.size ?? 0 > MAX_FILE_SIZE_BYTES) throw new MaxFileSizeError();
+
     try {
       setUploading(true);
 
@@ -95,7 +116,7 @@ const S3UploadForm: React.FC = () => {
         blob = file.file;
       } else {
         const response = await fetch(file.uri);
-        blob = (await response.blob()) as Blob;
+        blob = await response.blob();
       }
 
       if (!blob) throw new Error("Error getting blob to upload");
@@ -124,7 +145,9 @@ const S3UploadForm: React.FC = () => {
       Alert.alert("Upload successful");
     } catch (err) {
       console.error(err);
-      Alert.alert("Upload failed");
+      if (err instanceof MaxFileSizeError) {
+        Alert.alert("Error:", err.message);
+      } else Alert.alert("Upload failed");
     } finally {
       setUploading(false);
     }
