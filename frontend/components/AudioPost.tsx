@@ -107,8 +107,7 @@ const AudioPostComponent: React.FC<Post> = ({
    * Callback that fires when the song is finished.
    */
   const onEndCallback = useCallback(() => {
-    AudioProvider.audioContext.state === "running" && AudioProvider.stop();
-    AudioProvider.updatePosition(0);
+    AudioProvider.stop();
     updateValues(0);
     setPositionText(0);
     setIsPlaying(false);
@@ -123,7 +122,6 @@ const AudioPostComponent: React.FC<Post> = ({
     const newTime =
       progress.value * (AudioProvider.audioBuffer?.buffer.duration || 0);
     updateValues(newTime);
-    AudioProvider.updatePosition(newTime);
     AudioProvider.resume(id, newTime);
     setIsPlaying(true);
   }, []);
@@ -174,7 +172,7 @@ const AudioPostComponent: React.FC<Post> = ({
     }
   }, [isFocused, isPlaying]);
 
-  const pause = useCallback(async () => {
+  const pause = useCallback(() => {
     AudioProvider.pause();
     setIsPlaying(false);
   }, []);
@@ -206,6 +204,7 @@ const AudioPostComponent: React.FC<Post> = ({
     left: thumbPosition.value,
   }));
 
+  //Progress bar for player
   const progressBarWidthStyle = useAnimatedStyle(() => ({
     width: progress.value * progressContainerWidth,
   }));

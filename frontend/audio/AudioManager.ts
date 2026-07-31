@@ -37,6 +37,7 @@ class AudioProvider {
     this.onPositionChangedCallback = () => {};
   }
 
+  //TODO: keep track of current fetch state - wait for first preload if another is initiated.
   /**
    * Downloads an audio buffer into memory from a remote url
    * Sets the audio buffer into the `audioBufferMap`
@@ -45,9 +46,10 @@ class AudioProvider {
    * @returns the audio buffer
    */
   public async preloadAudioBuffer(id: number, url: string) {
-    console.info(`Preloading audio buffer by id: ${id}`);
+    console.info(`Started preloading audio buffer by id: ${id}`);
     const audioBuffer = await this.audioContext.decodeAudioData(url);
     this.audioBufferMap.set(id, audioBuffer);
+    console.info(`Finished preloading audio buffer by id: ${id}`);
     return audioBuffer;
   }
 
@@ -68,11 +70,16 @@ class AudioProvider {
     this.audioContext.suspend();
   }
 
+  /**
+   * Stops player node, disconnects from output, and suspends audio context.
+   * Resets position to 0 on stop.
+   */
   public stop() {
     if (!this.playerNode) return;
     this.playerNode?.stop();
     this.playerNode?.disconnect();
-    this.audioContext.close();
+    this.currentPosition = 0;
+    this.audioContext.suspend();
   }
 
   public resume(id: number, newTime?: number) {
@@ -85,11 +92,8 @@ class AudioProvider {
 
   public start(id: number) {
     this.createBufferSourceNode(id);
+    if (this.audioContext.state !== "running") this.audioContext.resume();
     this.playerNode?.start();
-  }
-
-  public updatePosition(position: number) {
-    this.currentPosition = position;
   }
 
   /**

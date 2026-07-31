@@ -126,7 +126,18 @@ router.post("/like", async (req: AuthenticatedRequest, res) => {
       liked: boolean;
     } = req.body;
     const type = liked ? "LIKE" : "DISLIKE";
-    const likeResult = await prisma.likeDislike.upsert({
+    const likeResult = await prisma.likeDislike.findUnique({
+      where: {
+        userId_songId: {
+          userId,
+          songId,
+        },
+      },
+    });
+    if (likeResult?.type.toUpperCase() === type) {
+      throw new Error(`Song already liked: ${liked} by user: ${userId}`);
+    }
+    const update = await prisma.likeDislike.upsert({
       where: {
         userId_songId: {
           userId,
@@ -136,8 +147,7 @@ router.post("/like", async (req: AuthenticatedRequest, res) => {
       update: { type },
       create: { userId, songId, type },
     });
-    const incrementAmount =
-      likeResult.createdAt === likeResult.updatedAt ? 1 : 2;
+
     //update likeCount on song
     const result = await prisma.song.update({
       where: {
@@ -146,9 +156,9 @@ router.post("/like", async (req: AuthenticatedRequest, res) => {
       data: {
         likeCount: liked
           ? {
-              increment: incrementAmount,
+              increment: 1,
             }
-          : { decrement: incrementAmount },
+          : { decrement: 1 },
       },
       select: {
         likeCount: true,

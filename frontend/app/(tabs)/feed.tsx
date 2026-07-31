@@ -81,10 +81,14 @@ export default function Feed() {
           renderItem={({ item }) => <AudioPost {...item} />}
           onViewableItemsChanged={viewabilityConfigCallback.current}
           viewabilityConfig={viewabilityConfig}
-          pagingEnabled={true} // Alternative to snapToInterval for full-screen items
-          // snapToInterval={itemWidth}
-          decelerationRate="fast"
-          snapToAlignment={"center"} // or 'start', 'end'
+          // pagingEnabled={true} // Alternative to snapToInterval for full-screen items
+          snapToInterval={ITEM_HEIGHT}
+          decelerationRate="normal"
+          // Layout Hints
+          disableIntervalMomentum={true} // Prevents skipping multiple items on hard swipes
+          horizontal={false} // Explicitly vertical
+          showsVerticalScrollIndicator={false}
+          snapToAlignment={"start"} // or 'start', 'end'
           showsHorizontalScrollIndicator={false}
           //don't scroll if the song has has no like status
           scrollEnabled={shouldScrollEnable}

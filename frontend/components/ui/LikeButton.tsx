@@ -1,6 +1,6 @@
 import { Post } from "@/service/posts";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { memo, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { Pressable, StyleSheet, Vibration, View } from "react-native";
 import Animated, {
   Extrapolation,
@@ -37,10 +37,9 @@ function LikeButtonComponent({
   setVoted,
 }: LikeButtonProps) {
   const { service } = usePostContext();
-  const [pressed, setPressed] = useState<boolean>(typeof voted !== "undefined");
 
   const outlineStyle = useAnimatedStyle(() => {
-    const value = !pressed
+    const value = !voted
       ? 0
       : variant === "like"
         ? likedSharedValue.value
@@ -52,10 +51,10 @@ function LikeButtonComponent({
         },
       ],
     };
-  }, [variant, pressed]);
+  }, [variant, voted]);
 
   const fillStyle = useAnimatedStyle(() => {
-    const value = !pressed
+    const value = !voted
       ? 0
       : variant === "like"
         ? likedSharedValue.value
@@ -64,7 +63,7 @@ function LikeButtonComponent({
       transform: [{ scale: value }],
       opacity: value,
     };
-  }, [variant, pressed]);
+  }, [variant, voted]);
 
   const voteCallback = (finished?: boolean) => {
     if (finished) {
@@ -72,29 +71,53 @@ function LikeButtonComponent({
     }
   };
 
+  /**
+   * Update like status based on current like value and variant.
+   *
+   * Updates:
+   * 1) database table via server.
+   * 2) front end posts that have already been fetched by Posts provider.
+   * 3) like bar component state (for ui elements).
+   * @see PostProvider - local feed update
+   * @see PostService -  server call
+   */
+  const updateLikeStatus = useCallback(() => {
+    // `like` button and current `like` value is 0 (`dislike`)
+    // update `like` value to 1 (`like`)
+    if (variant === "like" && likedSharedValue.value === 0) {
+      service.updateLikeStatus({ liked: true, songId });
+      likedSharedValue.value = withSpring(1, undefined, voteCallback);
+      // `like` dislike and current `like` value is 1 (`like`)
+      // update `like` value to 0 (`dislike`)
+    } else if (variant === "dislike" && likedSharedValue.value === 1) {
+      service.updateLikeStatus({ liked: false, songId });
+      likedSharedValue.value = withSpring(0, undefined, voteCallback);
+      // `like` dislike and current `like` value is 0 (`dislike` OR `null`)
+      // distinguish between a dislike and no like value at all with `voted`
+      // update `like` value to 0 (`dislike`)
+    } else if (
+      variant === "dislike" &&
+      likedSharedValue.value === 0 &&
+      !voted
+    ) {
+      service.updateLikeStatus({ liked: false, songId });
+      //set like value to 1, then to 0 to simulate a dislike selection (fills the dislike button)
+      likedSharedValue.value = 1;
+      likedSharedValue.value = withSpring(0, undefined, voteCallback);
+    }
+  }, [variant, service, voted, voteCallback]);
+
   return (
     <Pressable
       onPressIn={() => Vibration.vibrate(100)}
       onPress={() => {
-        if (!pressed) setPressed(true);
+        //update voted status
+        if (!voted) setVoted(variant);
         //debounce, only update status if shared value it fully set
-        if (likedSharedValue.value === 1 || likedSharedValue.value === 0) {
-          if (variant === "like" && likedSharedValue.value === 0) {
-            service.updateLikeStatus({ liked: true, songId });
-            likedSharedValue.value = withSpring(1, undefined, voteCallback);
-          } else if (variant === "dislike" && likedSharedValue.value === 1) {
-            service.updateLikeStatus({ liked: false, songId });
-            likedSharedValue.value = withSpring(0, undefined, voteCallback);
-          } else if (
-            variant === "dislike" &&
-            likedSharedValue.value === 0 &&
-            !voted
-          ) {
-            service.updateLikeStatus({ liked: false, songId });
-            likedSharedValue.value = 1;
-            likedSharedValue.value = withSpring(0, undefined, voteCallback);
-          }
-        }
+        if (likedSharedValue.value !== 1 && likedSharedValue.value !== 0)
+          return;
+
+        updateLikeStatus();
       }}
     >
       <Animated.View style={[StyleSheet.absoluteFillObject, outlineStyle]}>
@@ -111,6 +134,8 @@ function LikeButtonComponent({
 const LikeButton = memo(LikeButtonComponent);
 
 function LikeBarComponent({ songId, like }: LikeBarProps) {
+  //keep track of whether the user has liked or disliked yet.
+  //if `voted` is undefined, no selection has been made.
   const [voted, setVoted] = useState<LikeBarProps["like"]>(like);
   const likedSharedValue = useSharedValue(likeToInt(like));
 

@@ -31,6 +31,10 @@ export function PostContextProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
+  /**
+   * Update the like status in the ui.
+   * This prevents having to re-fetch posts when like status changes.
+   */
   const updateLikeStatus = useCallback(
     (id: number, status: Like) => {
       if (!posts) return;
@@ -74,7 +78,6 @@ export function PostContextProvider({ children }: PropsWithChildren) {
             await AudioProvider.preloadAudioBuffer(post.id, post.url);
           }
         });
-        console.info("Buffers preloaded!");
       }
     } catch (e: any) {
       console.error("Couldn't pre-load audio buffers: ", e.message);

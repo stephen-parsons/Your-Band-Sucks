@@ -153,7 +153,7 @@ export class PostService {
       }),
     });
     if (!res.ok) {
-      throw new Error("Failed to update like status");
+      console.error("Failed to update like status");
     }
     this.updateLikeStatusState?.(songId, liked ? "like" : "dislike");
     return await res.json();
