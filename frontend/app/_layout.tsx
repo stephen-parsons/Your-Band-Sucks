@@ -53,18 +53,11 @@ Amplify.configure({
   },
   Storage: {
     S3: {
-      bucket: imagesBucket,
       region: awsRegion,
       buckets: {
         [imagesBucket]: {
           bucketName: imagesBucket,
           region: awsRegion,
-          paths: {
-            "*": {
-              authenticated: ["get"],
-              guest: ["get"],
-            },
-          },
         },
       },
     },

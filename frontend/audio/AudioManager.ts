@@ -7,6 +7,8 @@ import {
 
 export type ActivePlayer = AudioBufferSourceNode & { id: number };
 
+export const ON_POSITION_CHANGED_INTERVAL = 100;
+
 /**
  * Singleton class controlling global audio controls through react-native-audio-api.
  *
@@ -133,7 +135,7 @@ class AudioProvider {
       this.currentPosition = ev.value;
       this.onPositionChangedCallback(ev.value);
     };
-    playerNode.onPositionChangedInterval = 100;
+    playerNode.onPositionChangedInterval = ON_POSITION_CHANGED_INTERVAL;
     (playerNode as ActivePlayer).id = id;
     this.playerNode = playerNode as ActivePlayer;
   }

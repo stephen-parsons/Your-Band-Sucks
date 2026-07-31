@@ -84,13 +84,14 @@ const AccountProfile = ({
         await service.createNewAvatar({
           key: objectKey,
         });
-      }
 
-      setFile(null);
-      refreshData();
+        setFile(null);
+        refreshData();
 
-      console.info("Upload successful!");
-      Alert.alert("Upload successful");
+        console.info("Upload successful!");
+        Alert.alert("Upload successful");
+      } else
+        throw new Error(`Upload failed with statu code ${uploadResult.status}`);
     } catch (err) {
       console.error(err);
       Alert.alert("Upload failed");

@@ -27,6 +27,7 @@ export default function Feed() {
     console.log("Changed: ", changed);
     changed.forEach((item) => {
       //clear the audio player when the post moves out of view
+      //TODO: reset the ui for that player that is not visible anymore
       item.isViewable === false && AudioProvider.clearActivePlayer();
       item.isViewable === true && setCurrentItem((item.item as Post).id);
     });

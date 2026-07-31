@@ -11,6 +11,11 @@ Create a file `.env` with the following variables:
 ```
 COGNITO_USER_POOL_ID = "pool-id"
 COGNITO_CLIENT_ID = "client-id"
+IDENTITY_POOL_ID = "..."
+S3_IMAGES_BUCKET = "..."
+S3_AUDIO_FILES_BUCKET = "..."
+AWS_REGION = "..."
+API_URL = "..."
 ```
 
 You will need aws access to grab the correct values.

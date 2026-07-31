@@ -1,13 +1,15 @@
 import { getUrl } from "aws-amplify/storage";
-import Constants from "expo-constants";
 import { useEffect, useState } from "react";
 
-const { audioFilesBucket } = Constants.expoConfig?.extra || {};
+const DEFAULT_PRESIGNED_URL_EXPIRATION = 3600;
 
-if (!audioFilesBucket) throw new Error("bad s3 bucket config!!");
-
-export default function usePresignedUrl(key: string) {
+export default function usePresignedUrl(
+  bucket: string,
+  key: string,
+  expiration?: number,
+) {
   const [url, setUrl] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -17,22 +19,22 @@ export default function usePresignedUrl(key: string) {
         const url = await getUrl({
           path: key,
           options: {
-            bucket: audioFilesBucket as string,
+            bucket,
             // Optional: validate existence and customize URL expiry
             validateObjectExistence: true, // Check if the object exists
-            expiresIn: 60 * 60, // URL valid for 1 hour
+            expiresIn: expiration || DEFAULT_PRESIGNED_URL_EXPIRATION,
           },
         });
         setIsLoading(false);
         setUrl(url.url.toString());
       } catch (e) {
         console.error(e);
+        setError(e as Error);
         setIsLoading(false);
       }
     }
-    console.log(key, url, isLoading);
-    if (key && !url && !isLoading) getPresignedUrl(key);
-  }, [url, isLoading]);
+    if (key && !url && !isLoading && !error) getPresignedUrl(key);
+  }, [error, url, isLoading]);
 
-  return { url };
+  return { url, error, isLoading };
 }

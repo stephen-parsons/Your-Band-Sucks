@@ -15,7 +15,9 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import AudioProvider from "../audio/AudioManager";
+import AudioProvider, {
+  ON_POSITION_CHANGED_INTERVAL,
+} from "../audio/AudioManager";
 import AudioVisualizer from "./AudioVisualizer";
 import S3Image from "./S3Image";
 import { ThemedText } from "./themed-text";
@@ -88,9 +90,14 @@ const AudioPostComponent: React.FC<Post> = ({
       (newPosition / durationValue) * progressContainerWidth - THUMB_SIZE / 2;
     setPositionText(newPosition);
 
-    //Check if at the end of the buffer
-    //The final onPositionChangedCallback won't fire within the last interval
-    const isNearEnd = durationValue && durationValue - newPosition < 0.1;
+    /**
+     * Check if at the end of the buffer.
+     * The final onPositionChangedCallback won't fire within the last interval.
+     * Use seconds instead of milliseconds.ß
+     */
+    const isNearEnd =
+      durationValue > 0 &&
+      durationValue - newPosition < ON_POSITION_CHANGED_INTERVAL / 1000;
     if (isNearEnd) {
       onEndCallback();
     }

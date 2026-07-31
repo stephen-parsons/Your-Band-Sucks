@@ -135,7 +135,7 @@ export async function setCacheItem<T>(key: string, value: T): Promise<boolean> {
     await client.set(
       key,
       JSON.stringify(new CacheItem<T>(value, new Date().toISOString())),
-      { EX: DEFAULT_EXPIRATION },
+      { expiration: { type: "EX", value: DEFAULT_EXPIRATION } },
     );
     return true;
   } catch (error) {
