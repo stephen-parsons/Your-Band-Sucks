@@ -3,9 +3,9 @@
 import express from "express";
 import { AuthenticatedRequest } from "..";
 import { cognitoAuthorizer } from "../authorizer";
-import config from "../config";
 import { SongCreateInput } from "../generated/prisma/models";
 import { prisma } from "../prisma";
+import { getRecommendedFeed } from "../queries/posts";
 import { userPostsCacheKey } from "../redis/keys";
 import { getCacheItem, setCacheItem } from "../redis/redis";
 import {
@@ -13,6 +13,8 @@ import {
   createPresignedUrlWithClientGET,
   createPresignedUrlWithClientPUT,
 } from "../service/S3Service";
+
+const DEFAULT_POST_LIMIT = 15;
 
 const router = express.Router();
 
@@ -27,24 +29,7 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
   console.warn("User posts cache not found, fetching posts...");
 
   try {
-    const posts = await prisma.song.findMany({
-      include: {
-        likes: {
-          where: {
-            userId: req.userId,
-          },
-          select: { type: true },
-        },
-        tags: { select: { description: true, id: true } },
-        user: { select: { name: true, avatar: true } },
-      },
-      omit: { userId: true, createdAt: true, updatedAt: true },
-      where: {
-        userId: {
-          not: req.userId,
-        },
-      },
-    });
+    const posts = await getRecommendedFeed(req.userId!, DEFAULT_POST_LIMIT);
     const newPosts = await Promise.all(
       posts.map(async (post) => {
         //todo: get presignedUrls from cloudfront
@@ -56,9 +41,8 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
         const newPost = {
           ...post,
           url,
-          like: post.likes[0]?.type.toLocaleLowerCase(),
+          like: post.like?.toLocaleLowerCase() || null,
         } as any;
-        delete newPost.likes;
         delete newPost.key;
         return newPost;
       }),
@@ -118,7 +102,7 @@ router.post("/pre-signed-url", async (req: AuthenticatedRequest, res) => {
       contentType: string;
     } = req.body;
     const key = `${userId}/${filename}`;
-    const bucket = config.aws.bucket.audioFiles;
+    const bucket = BUCKETS.audioFiles;
     const url = await createPresignedUrlWithClientPUT({
       bucket,
       key,
