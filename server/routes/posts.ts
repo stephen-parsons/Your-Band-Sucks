@@ -41,7 +41,7 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
         const newPost = {
           ...post,
           url,
-          like: post.like?.toLocaleLowerCase() || null,
+          like: post.like?.toLocaleLowerCase(),
         } as any;
         delete newPost.key;
         return newPost;

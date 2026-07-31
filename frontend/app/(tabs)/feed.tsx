@@ -42,8 +42,11 @@ export default function Feed() {
     [posts, currentItem],
   );
 
+  /**
+   * Only enable scrolling if the user has voted on the current psot.
+   */
   const shouldScrollEnable = useMemo(
-    () => (posts ? currentPost?.like !== undefined : false),
+    () => (posts ? typeof currentPost?.like === "string" : false),
     [posts, currentPost],
   );
 

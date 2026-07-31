@@ -40,8 +40,11 @@ function LikeButtonComponent({
   const [pressed, setPressed] = useState<boolean>(typeof voted !== "undefined");
 
   const outlineStyle = useAnimatedStyle(() => {
-    const value =
-      variant === "like" ? likedSharedValue.value : 1 - likedSharedValue.value;
+    const value = !pressed
+      ? 0
+      : variant === "like"
+        ? likedSharedValue.value
+        : 1 - likedSharedValue.value;
     return {
       transform: [
         {
@@ -49,16 +52,19 @@ function LikeButtonComponent({
         },
       ],
     };
-  }, []);
+  }, [variant, pressed]);
 
   const fillStyle = useAnimatedStyle(() => {
-    const value =
-      variant === "like" ? likedSharedValue.value : 1 - likedSharedValue.value;
+    const value = !pressed
+      ? 0
+      : variant === "like"
+        ? likedSharedValue.value
+        : 1 - likedSharedValue.value;
     return {
       transform: [{ scale: value }],
       opacity: value,
     };
-  }, [variant]);
+  }, [variant, pressed]);
 
   const voteCallback = (finished?: boolean) => {
     if (finished) {
@@ -107,6 +113,8 @@ const LikeButton = memo(LikeButtonComponent);
 function LikeBarComponent({ songId, like }: LikeBarProps) {
   const [voted, setVoted] = useState<LikeBarProps["like"]>(like);
   const likedSharedValue = useSharedValue(likeToInt(like));
+
+  console.log("like", typeof like);
 
   return (
     <View style={styles.likeButton}>
