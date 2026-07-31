@@ -49,7 +49,7 @@ export default function SkiaVisualizer({
 
     for (let i = 0; i < FFT_SIZE; i++) {
       const x = i * slice;
-      const y = (timeData[i] / 255) * height * 0.4;
+      const y = (timeData[i] / 255) * height * 0.8;
 
       if (i === 0) wavePath.moveTo(x, y);
       else wavePath.lineTo(x, y);
@@ -57,31 +57,31 @@ export default function SkiaVisualizer({
 
     waveformPath.value = wavePath;
 
-    // -------- Spectrum --------
-    const specPath = Skia.Path.Make();
-    const barWidth = width / (FFT_SIZE / 2);
+    // // -------- Spectrum --------
+    // const specPath = Skia.Path.Make();
+    // const barWidth = width / (FFT_SIZE / 2);
 
-    for (let i = 0; i < FFT_SIZE / 2; i++) {
-      const x = i * barWidth;
-      const h = (freqData[i] / 255) * height * 0.6;
+    // for (let i = 0; i < FFT_SIZE / 2; i++) {
+    //   const x = i * barWidth;
+    //   const h = (freqData[i] / 255) * height * 0.6;
 
-      specPath.addRect({
-        x,
-        y: height - h,
-        width: barWidth - 2,
-        height: h,
-      });
-    }
+    //   specPath.addRect({
+    //     x,
+    //     y: height - h,
+    //     width: barWidth - 2,
+    //     height: h,
+    //   });
+    // }
 
-    spectrumPath.value = specPath;
+    // spectrumPath.value = specPath;
 
     requestAnimationFrame(loop);
   };
 
   return (
     <Canvas style={styles.container} onSize={size}>
-      <Path path={waveformPath} color="lime" style="stroke" strokeWidth={2} />
-      <Path path={spectrumPath} color="cyan" />
+      <Path path={waveformPath} color="lime" style="stroke" strokeWidth={5} />
+      {/* <Path path={spectrumPath} color="cyan" /> */}
     </Canvas>
   );
 }
