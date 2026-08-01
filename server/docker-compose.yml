@@ -1,0 +1,59 @@
+services:
+  # Your existing web application
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: band-app-server
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules # Prevents your local node_modules from overwriting the container's linux node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      # CRITICAL: Change localhost to the service names below in your app config
+      - DATABASE_URL=postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@postgres-db:5432/${DATABASE_NAME}
+      - REDIS_URL=redis://redis-cache:6379
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+    command: sh -c "npx prisma migrate deploy && npm start"
+
+  # PostgreSQL v18 Instance
+  postgres-db:
+    image: postgres:18-alpine
+    container_name: local_postgres
+    environment:
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=${DATABASE_NAME}
+    ports:
+      - "5432:5432" # Allows you to still connect via local GUI tools like PgAdmin/DBeaver
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis Instance
+  redis-cache:
+    image: redis:7-alpine
+    container_name: local_redis
+    ports:
+      - "6379:6379" # Allows local GUI tools to connect
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+# Persistent volumes so your data survives container restarts
+volumes:
+  postgres_data:
+  redis_data:

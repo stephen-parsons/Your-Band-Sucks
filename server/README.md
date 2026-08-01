@@ -16,8 +16,39 @@ Make sure to run the following commands when starting the server!
 This migrates the db schema and generates the `prisma` client.
 
 ```
-npx prisma migrate dev --name init
+npx prisma migrate deploy
 npx prisma generate
+```
+
+To apply a new migration run:
+
+```
+npx prisma migrate dev --name <migration_name>
+```
+
+To reset the db:
+
+```
+npnx prisma migrate reset
+```
+
+For more info:
+https://www.prisma.io/docs/cli/migrate
+
+## Docker setup
+
+This app can be run using Docker. It is recommended to install Docker Desktop. You can install Docker with Homebrew via `brew install docker`.
+
+From the server folder run `docker compose up -d`. Make sure that your local postgres or redis instances are NOT running prior to composing the Docker container.
+
+WARN: local development/hot reloading is not enabled yet for Docker.
+
+Add the following env vars to support a Docker based postgres connection:
+
+```
+DATABASE_PASSWORD
+DATABASE_USER
+DATABASE_NAME
 ```
 
 ## AWS
