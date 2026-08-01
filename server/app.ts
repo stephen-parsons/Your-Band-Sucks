@@ -25,7 +25,12 @@ app.use(express.static(path.join(__dirname, "public")));
 //todo: restrict cors in production
 app.use(cors());
 
-morganBody(app);
+// Disable max body length (may need to implement limi at some point).
+// Prettify logs only in local env.
+morganBody(app, {
+  maxBodyLength: Infinity,
+  prettify: process.env.NODE_ENV === "development",
+});
 
 //redis startup
 startRedis();
