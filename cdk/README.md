@@ -1,6 +1,6 @@
 # YourBandSucks CDK
 
-AWS CDK (TypeScript) for the backend: Express on Fargate, Postgres, Redis, plus imported Cognito/S3 and cross-account DNS for `api.stephenparsons.dev`.
+AWS CDK (TypeScript) for the backend: Express on Fargate, Postgres, Redis, plus imported Cognito/S3 and cross-account DNS for api.
 
 ## Architecture
 
@@ -52,7 +52,7 @@ Useful flags: `--progress events`, `--exclusively` (single stack).
 2. **Diff** — Review creates/updates; confirm S3/Cognito are not destroyed (imports only).
 3. **Deploy** — CloudFormation creates/updates VPC → RDS/Redis → ALB/cert/DNS → ECS service. First RDS create is the long pole (~10–15+ min).
 4. **Rollout** — New task definition ships a new image; ECS drains old tasks. Entry point migrates DB before listen.
-5. **Verify** — `https://api.stephenparsons.dev/ping` and `/health`.
+5. **Verify** — `/ping` and `/health`.
 
 RDS uses a custom parameter group with `rds.force_ssl=0` so the app can connect without `sslmode` in the URL. Changing that parameter may require a reboot.
 
