@@ -1,0 +1,18 @@
+# Exclude heavy dependencies and build folders
+
+node_modules/
+dist/
+
+# Exclude large auto-generated files and media
+
+_.log
+_.mp4
+_.png
+_.jpg
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Exclude temporary text data
+tmp/
+temp/
