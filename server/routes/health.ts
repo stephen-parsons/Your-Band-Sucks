@@ -4,6 +4,9 @@ import { client, healthCheck } from "../redis/redis";
 
 const router = express.Router();
 
+const gitCommit = process.env.GIT_COMMIT ?? "unknown";
+const gitCommitShort = gitCommit.slice(-7);
+
 router.get("/", async (req, res) => {
   try {
     const connections = (await getActiveConnections()).map((connection) => {
@@ -13,12 +16,15 @@ router.get("/", async (req, res) => {
     });
     const pong = await pingRedis();
 
-    return res
-      .status(200)
-      .send({ status: "UP", redis: pong, db: { status: "UP", connections } });
+    return res.status(200).send({
+      status: "UP",
+      commit: gitCommitShort,
+      redis: pong,
+      db: { status: "UP", connections },
+    });
   } catch (err: unknown) {
     console.error(err);
-    res.status(503).send({ status: "DOWN" });
+    res.status(503).send({ status: "DOWN", commit: gitCommitShort });
   }
 });
 

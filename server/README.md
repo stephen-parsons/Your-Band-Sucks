@@ -3,7 +3,7 @@
 ## Basic Setup
 
 1. `npm i` to install npm dependencies
-2. Create a `.env` file in `/server` directory with your database url like: `DATABASE_URL={postgresql_db_url}`. The url for postgresql is usually in the format `postgresql://{username}:{password}@{host}:5432/{db}`. For local instances installed with homebrew `postgresql://localhost:5432/postgres` is usually sufficient.
+2. Create a `.env` file in `/server` directory with your database url like: `DB_URL={postgresql_db_url}`. The url for postgresql is usually in the format `postgresql://{username}:{password}@{host}:5432/{db}`. For local instances installed with homebrew `postgresql://localhost:5432/postgres` is usually sufficient.
 3. `brew install postgresql@18` and `brew services start postgresql@18` to run the postgresql database server. Check `brew services list | grep postgresql@18` and `psql -d postgres -U {username}` to verify the server is running and accesible. You can stop the server with `brew services stop postgresql@18`
 4. `npm watch` to build the server code in `watch` mode
 5. `npm start` to start express server in `watch` mode
@@ -46,9 +46,9 @@ WARN: local development/hot reloading is not enabled yet for Docker.
 Add the following env vars to support a Docker based postgres connection:
 
 ```
-DATABASE_PASSWORD
-DATABASE_USER
-DATABASE_NAME
+DB_PASSWORD
+DB_USER
+DB_NAME
 ```
 
 ## AWS
@@ -59,6 +59,10 @@ AWS access is needed for certain operations, like generating pre-signed urls. Co
 2. Run `aws configure sso` with your account details to setup sso.
 3. Run `aws sso login --profile {your-profile}` in order to login through the aws portal. Alternatively modify `~/.aws/config` to use a default acccount.
 4. Run `aws sts get-caller-identity` to verify your sso was successful.
+
+### Deployments
+
+Production/backend infrastructure (Fargate, RDS, Redis, ALB, DNS) is managed with AWS CDK. See **[../cdk/README.md](../cdk/README.md)** for architecture, commands, and the deploy lifecycle.
 
 ### Service Credentials
 
@@ -97,3 +101,22 @@ in your local `.env` file.
 ## Troubleshooting
 
 If unable to run `psql`, you may need to symlink the command to your homebrew installation. Add `export PATH="/opt/homebrew/opt/postgresql@18/bin:$PATH"` to your bashrc or zshrc and source the changes. Make sure to specify the correct postgresql version you installed form Homebrew.
+
+### Rollbacks
+
+To mitigate issues with rolling back cdk deploys on initial resources setup, you may need to manually delete the postgres instance (Which has a RETAIN policy).
+
+Run 
+```
+aws rds modify-db-instance \
+    --db-instance-identifier your-db-identifier \
+    --no-deletion-protection \
+    --apply-immediately
+```
+and
+```
+aws rds delete-db-instance \
+    --db-instance-identifier your-db-identifier \
+    --skip-final-snapshot
+```
+to manually delete the db.        

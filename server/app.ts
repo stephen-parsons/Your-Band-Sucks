@@ -35,6 +35,10 @@ morganBody(app, {
 //redis startup
 startRedis();
 
+app.get("/ping", (_req, res) => {
+  res.status(200).send("ok");
+});
+
 app.use("/health", healthRouter);
 app.use("/users", usersRouter);
 app.use("/posts", postsRouter);

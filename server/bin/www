@@ -66,6 +66,7 @@ function onError(error) {
       console.error(bind + " requires elevated privileges");
       process.exit(1);
     case "EADDRINUSE":
+      console.error(bind + " is already in use");
       process.exit(1);
     default:
   }
@@ -79,7 +80,15 @@ function onListening() {
   const credsProvided =
     typeof process.env.IAM_USER_AWS_ACCESS_KEY_ID === "string" &&
     typeof process.env.IAM_USER_AWS_SECRET_ACCESS_KEY === "string";
+  const gitCommit = process.env.GIT_COMMIT ?? "unknown";
+  const gitCommitShort = gitCommit.slice(-7);
   console.log("✅", "Listening on port: " + chalk.green(port));
+  console.info(
+    "✅",
+    "Git commit:",
+    chalk.green(gitCommitShort),
+    `(${gitCommit})`,
+  );
   console.info(
     "✅",
     "Running with node env: ",
