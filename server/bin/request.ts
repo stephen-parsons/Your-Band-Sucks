@@ -4,15 +4,37 @@ import getBearerAuthToken from "./login";
 
 const options: ParseArgsOptionsConfig = {
   path: { type: "string", short: "p" },
+  method: { type: "string", short: "m", default: "GET" },
+  body: { type: "string", short: "b" },
 };
 
 const { values } = parseArgs({ options, strict: false });
 
-const pathArg = values.path as string;
+const pathArg = values.path as string | undefined;
+const methodArg = (
+  (values.method as string | undefined) ?? "GET"
+).toUpperCase();
+const bodyArg = values.body as string | undefined;
 
 if (!pathArg) {
   console.error("❌ Error: Please provide a path argument. Example: /users");
   process.exit(1);
+}
+
+if (methodArg === "POST" && !bodyArg) {
+  console.error(
+    '❌ Error: POST requests require a --body argument. Example: --body \'{"key":"value"}\'',
+  );
+  process.exit(1);
+}
+
+if (bodyArg) {
+  try {
+    JSON.parse(bodyArg);
+  } catch {
+    console.error("❌ Error: --body must be valid stringified JSON");
+    process.exit(1);
+  }
 }
 
 // 2. Format the path to ensure it starts with a forward slash
@@ -24,18 +46,25 @@ if (!process.env.API_URL) {
   process.exit(1);
 }
 
-async function makeRequest() {
+async function makeRequest(): Promise<void> {
   const token = await getBearerAuthToken();
 
   try {
-    console.log(`🚀 Sending GET request to: ${url}`);
+    console.log(`🚀 Sending ${methodArg} request to: ${url}`);
+
+    const headers: Record<string, string> = {
+      Authorization: "Bearer " + token,
+      Accept: "application/json",
+    };
+
+    if (bodyArg) {
+      headers["Content-Type"] = "application/json";
+    }
 
     const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: "Bearer " + token,
-        Accept: "application/json",
-      },
+      method: methodArg,
+      headers,
+      body: bodyArg,
     });
 
     const data = JSON.stringify(await response.json(), null, 2);
