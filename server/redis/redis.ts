@@ -58,7 +58,7 @@ export async function startRedis() {
 }
 
 /**
- * Create a new rediw client and connect to the cache using env `REDIS_URL`.
+ * Create a new redis client and connect to the cache using env `REDIS_URL`.
  * Should only be called once at startup.
  */
 async function connectCache(): Promise<void> {

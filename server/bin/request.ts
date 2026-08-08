@@ -17,7 +17,12 @@ if (!pathArg) {
 
 // 2. Format the path to ensure it starts with a forward slash
 const formattedPath = pathArg.startsWith("/") ? pathArg : `/${pathArg}`;
-const url = `http://localhost:3000${formattedPath}`;
+const url = `${process.env.API_URL}${formattedPath}`;
+
+if (!process.env.API_URL) {
+  console.error("❌ Error: API_URL is not set");
+  process.exit(1);
+}
 
 async function makeRequest() {
   const token = await getBearerAuthToken();
