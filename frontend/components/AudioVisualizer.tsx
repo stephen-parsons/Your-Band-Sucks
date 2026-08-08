@@ -24,10 +24,8 @@ export default function SkiaVisualizer({
     let raf: number = 0;
 
     if (isPlaying) {
-      console.info("Analyzer rendering... ", id);
       raf = requestAnimationFrame(loop);
     } else {
-      console.info("Analyzer off... ", id);
       cancelAnimationFrame(raf);
     }
 

@@ -17,6 +17,7 @@ export function moduleLogger(
   options?: Options,
 ): ModuleLogger {
   const devOnly = options?.devOnly ?? true;
+  //todo: disable logging in production
   if (devOnly && process.env.NODE_ENV !== "development") () => {};
   return Object.fromEntries(
     levels.map((level) => {
