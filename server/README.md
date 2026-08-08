@@ -9,6 +9,10 @@
 5. `npm start` to start express server in `watch` mode
 6. **(Optional)** `brew install redis` and `brew services start redis` will install a local redis server and start the server. This application makes use of a redis caching layer, but it is not required. Make sure to add `REDIS_URL` in your .env file (will also default to localhost which should work for brew installations).
 
+## Logging
+
+To disable color outputs, use FORCE_COLOR=0 (this should be enabled in production by default) to turn off Chalk.
+
 ## Prisma setup
 
 Make sure to run the following commands when starting the server!

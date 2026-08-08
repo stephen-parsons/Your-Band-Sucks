@@ -191,6 +191,7 @@ export class NetworkingResources extends Construct {
             S3_IMAGES_BUCKET: props.imagesBucketName,
             S3_AUDIO_FILES_BUCKET: props.audioFilesBucketName,
             IAM_USER_AWS_ACCESS_KEY_ID: props.accessKeyId,
+            FORCE_COLOR: "0",
           },
           secrets: {
             IAM_USER_AWS_SECRET_ACCESS_KEY: ecs.Secret.fromSecretsManager(
