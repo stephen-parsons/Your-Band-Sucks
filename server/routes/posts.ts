@@ -13,6 +13,7 @@ import {
   createPresignedUrlWithClientGET,
   createPresignedUrlWithClientPUT,
 } from "../service/S3Service";
+import { assertSafeFilename, UnsafeFilenameError } from "../util/filename";
 
 const DEFAULT_POST_LIMIT = 15;
 
@@ -92,7 +93,6 @@ router.post("/new", async (req: AuthenticatedRequest, res) => {
  */
 router.post("/pre-signed-url", async (req: AuthenticatedRequest, res) => {
   const userId = req.userId!;
-  //todo: sanitize filename for safety
   try {
     const {
       filename,
@@ -101,6 +101,7 @@ router.post("/pre-signed-url", async (req: AuthenticatedRequest, res) => {
       filename: string;
       contentType: string;
     } = req.body;
+    assertSafeFilename(filename);
     const key = `${userId}/${filename}`;
     const bucket = BUCKETS.audioFiles;
     const url = await createPresignedUrlWithClientPUT({
@@ -111,6 +112,9 @@ router.post("/pre-signed-url", async (req: AuthenticatedRequest, res) => {
     res.status(200).json({ objectKey: key, url });
   } catch (e) {
     console.error(e);
+    if (e instanceof UnsafeFilenameError) {
+      return res.status(400).json({ error: e.message });
+    }
     res.status(500).json({ error: "Failed to get pre-signed-url" });
   }
 });

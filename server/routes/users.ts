@@ -10,6 +10,7 @@ import {
   createPresignedUrlWithClientPUT,
   deleteS3Object,
 } from "../service/S3Service";
+import { assertSafeFilename, UnsafeFilenameError } from "../util/filename";
 import { mapTagResults } from "../util/tags";
 
 const router = express.Router();
@@ -104,7 +105,6 @@ router.post("/new", async (req, res) => {
 router.post(
   "/avatar/pre-signed-url",
   async (req: AuthenticatedRequest, res) => {
-    //todo: sanitize filename for safety
     const userId = req.userId!;
     try {
       const {
@@ -114,6 +114,7 @@ router.post(
         filename: string;
         contentType: string;
       } = req.body;
+      assertSafeFilename(filename);
       const key = `${userId}/${filename}`;
       const bucket = config.aws.bucket.images;
       const url = await createPresignedUrlWithClientPUT({
@@ -124,6 +125,9 @@ router.post(
       res.status(200).json({ url, objectKey: key });
     } catch (e) {
       console.error(e);
+      if (e instanceof UnsafeFilenameError) {
+        return res.status(400).json({ error: e.message });
+      }
       res
         .status(500)
         .json({ error: "Failed to get pre-signed-url for avatar" });

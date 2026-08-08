@@ -1,25 +1,26 @@
 import { AnimatedCount } from "@/components/ui/AnimtedCount";
 import { uploadToS3, UserProfile, UserService } from "@/service/user";
+import { assertSafeFilename, UnsafeFilenameError } from "@/util/filename";
 import {
-  FontAwesome,
-  Ionicons,
-  MaterialCommunityIcons,
+    FontAwesome,
+    Ionicons,
+    MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import React, { ReactNode, useCallback, useState } from "react";
 import {
-  Alert,
-  Image,
-  Modal,
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Alert,
+    Image,
+    Modal,
+    Platform,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import Animated, {
-  FadeInDown,
-  FadeInRight,
-  LinearTransition,
+    FadeInDown,
+    FadeInRight,
+    LinearTransition,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import S3Image from "./S3Image";
@@ -70,6 +71,7 @@ const AccountProfile = ({
       setUploading(true);
 
       const filename = file.fileName || "avatar";
+      assertSafeFilename(filename);
 
       //Generate s3 object key based on user id and filename
       const { url: presignedUrl, objectKey } = await service.getPresignedUrl({
@@ -109,7 +111,10 @@ const AccountProfile = ({
         throw new Error(`Upload failed with statu code ${uploadResult.status}`);
     } catch (err) {
       console.error(err);
-      if (err instanceof MaxFileSizeError) {
+      if (
+        err instanceof MaxFileSizeError ||
+        err instanceof UnsafeFilenameError
+      ) {
         Alert.alert("Error:", err.message);
       } else Alert.alert("Upload failed");
     } finally {
@@ -118,7 +123,6 @@ const AccountProfile = ({
     }
   }, [file]);
 
-  //TODO: sanitize filename and check file size limit (in bytes)
   const pickFile = useCallback(async () => {
     try {
       // No permission request is necessary for launching the image library
@@ -134,12 +138,19 @@ const AccountProfile = ({
       if (file?.fileSize ?? 0 > MAX_FILE_SIZE_BYTES)
         throw new MaxFileSizeError();
 
+      if (file?.fileName) {
+        assertSafeFilename(file.fileName);
+      }
+
       if (!result.canceled) {
         if (file?.type !== "image") throw new Error("Only images allowed!");
         setFile(result.assets[0]);
       }
     } catch (err) {
-      if (err instanceof MaxFileSizeError) {
+      if (
+        err instanceof MaxFileSizeError ||
+        err instanceof UnsafeFilenameError
+      ) {
         Alert.alert("Error:", err.message);
       } else Alert.alert("Error picking file");
     }

@@ -6,15 +6,16 @@ import Tag from "@/components/ui/Tag";
 import useTags from "@/hooks/use-tags";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { uploadToS3 } from "@/service/posts";
+import { assertSafeFilename, UnsafeFilenameError } from "@/util/filename";
 import * as DocumentPicker from "expo-document-picker";
 import React, { Dispatch, SetStateAction, useCallback, useState } from "react";
 import {
-  Alert,
-  Platform,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Platform,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -61,7 +62,6 @@ const S3UploadForm: React.FC = () => {
     [title, description, tags],
   );
 
-  //TODO: sanitize filename
   const pickFile = useCallback(async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -72,6 +72,10 @@ const S3UploadForm: React.FC = () => {
 
       if (file?.size ?? 0 > MAX_FILE_SIZE_BYTES) throw new MaxFileSizeError();
 
+      if (file?.name) {
+        assertSafeFilename(file.name);
+      }
+
       if (!result.canceled) {
         setFile(file);
       } else {
@@ -79,7 +83,10 @@ const S3UploadForm: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
-      if (err instanceof MaxFileSizeError) {
+      if (
+        err instanceof MaxFileSizeError ||
+        err instanceof UnsafeFilenameError
+      ) {
         Alert.alert("Error:", err.message);
       } else Alert.alert("Error picking file");
     }
@@ -103,6 +110,8 @@ const S3UploadForm: React.FC = () => {
 
     try {
       setUploading(true);
+
+      assertSafeFilename(file.name);
 
       //Generate s3 object key based on user id and filename
       const { objectKey, url: presignedUrl } = await service.getPresignedUrl({
@@ -145,7 +154,10 @@ const S3UploadForm: React.FC = () => {
       Alert.alert("Upload successful");
     } catch (err) {
       console.error(err);
-      if (err instanceof MaxFileSizeError) {
+      if (
+        err instanceof MaxFileSizeError ||
+        err instanceof UnsafeFilenameError
+      ) {
         Alert.alert("Error:", err.message);
       } else Alert.alert("Upload failed");
     } finally {
