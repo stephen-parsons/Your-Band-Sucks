@@ -8,6 +8,7 @@ import chalk from "chalk";
 import "dotenv/config";
 import { createServer } from "http";
 import app from "../dist/app.js";
+import { attachWebSocketServer } from "../dist/websocket/hub.js";
 
 /**
  * Get port from environment and store in Express.
@@ -20,6 +21,7 @@ var port = normalizePort(process.env.PORT || "3000");
  */
 
 var server = createServer(app);
+attachWebSocketServer(server);
 
 /**
  * Listen on provided port, on all network interfaces.

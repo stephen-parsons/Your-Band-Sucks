@@ -1,18 +1,20 @@
 import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
+    DarkTheme,
+    DefaultTheme,
+    ThemeProvider,
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
+import { LikeNotificationBanner } from "@/components/LikeNotificationBanner";
 import { PostContextProvider } from "@/components/PostProvider";
+import { WebSocketProvider } from "@/components/WebSocketProvider";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
-  ThemeProvider as AmplifyThemeProvider,
-  Authenticator,
-  defaultDarkModeOverride,
+    ThemeProvider as AmplifyThemeProvider,
+    Authenticator,
+    defaultDarkModeOverride,
 } from "@aws-amplify/ui-react-native";
 import { Amplify } from "aws-amplify";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -98,14 +100,17 @@ export default function RootLayout() {
                   }}
                 >
                   <AuthProvider>
-                    <PostContextProvider>
-                      <Stack>
-                        <Stack.Screen
-                          name="(tabs)"
-                          options={{ headerShown: false, animation: "fade" }}
-                        />
-                      </Stack>
-                    </PostContextProvider>
+                    <WebSocketProvider>
+                      <PostContextProvider>
+                        <Stack>
+                          <Stack.Screen
+                            name="(tabs)"
+                            options={{ headerShown: false, animation: "fade" }}
+                          />
+                        </Stack>
+                        <LikeNotificationBanner />
+                      </PostContextProvider>
+                    </WebSocketProvider>
                   </AuthProvider>
                 </Authenticator>
               </Authenticator.Provider>
