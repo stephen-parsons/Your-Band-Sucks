@@ -110,6 +110,32 @@ export function sendToUser(userId: number, event: WsServerEvent): void {
   }
 }
 
+export interface WebSocketHealth {
+  status: "HEALTHY" | "UNHEALTHY";
+  path: string;
+  clients: number;
+  users: number;
+  channels: Record<string, number>;
+}
+
+/**
+ * Reports whether the WebSocket server is attached and current connection counts.
+ */
+export function getWebSocketHealth(): WebSocketHealth {
+  const channels: Record<string, number> = {};
+  for (const [channel, subscribers] of channelSubscribers) {
+    channels[channel] = subscribers.size;
+  }
+
+  return {
+    status: wss ? "HEALTHY" : "UNHEALTHY",
+    path: WS_PATH,
+    clients: wss?.clients.size ?? 0,
+    users: socketsByUserId.size,
+    channels,
+  };
+}
+
 async function authenticateUpgrade(
   request: IncomingMessage,
 ): Promise<number | null> {
