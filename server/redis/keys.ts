@@ -5,3 +5,5 @@ export function userIdCognitoIdCacheKey(cognitoId: string) {
 export function userPostsCacheKey(userId: number) {
   return `user:${userId}:posts`;
 }
+
+export const LEADERBOARD_SONGS_KEY = "leaderboard:songs";

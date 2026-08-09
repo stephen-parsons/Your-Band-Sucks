@@ -14,6 +14,14 @@ export interface IAuthContext {
   isAuthenticated: boolean;
   apiClient: typeof fetch;
   getIdToken: () => string | undefined;
+  getAccessToken: () => string | undefined;
+  /**
+   * Returns a valid access token, refreshing the Cognito session when expired
+   * or when `forceRefresh` is true.
+   */
+  ensureValidAccessToken: (
+    forceRefresh?: boolean,
+  ) => Promise<string | undefined>;
 }
 
 const AuthContext = createContext<IAuthContext | null>(null);
@@ -34,28 +42,46 @@ export default function AuthProvider({ children }: PropsWithChildren) {
     return session?.tokens?.idToken?.toString();
   }, [session]);
 
-  const apiClient = useCallback(
-    async (input: string | URL | Request, options: RequestInit = {}) => {
+  const getAccessToken = useCallback(() => {
+    return session?.tokens?.accessToken?.toString();
+  }, [session]);
+
+  const isAccessTokenExpired = useCallback(
+    (currentSession: AuthSession | null): boolean => {
+      const exp = currentSession?.tokens?.accessToken.payload.exp;
+      if (!exp) {
+        return false;
+      }
+      // multiply exp claim by 1000 for epoch ms; Amplify does not auto-refresh
+      // unless fetchAuthSession is invoked
+      return new Date(exp * 1000) < new Date();
+    },
+    [],
+  );
+
+  const ensureValidAccessToken = useCallback(
+    async (forceRefresh = false): Promise<string | undefined> => {
       let currentSession = session;
-      //check if access token needs to be refreshed
-      //multipy the access token exp claim by 1000 to get epoch time and create new Date
-      //compare this with curren time.
-      //this check is not programatically done amplify unless fetchAuthSession is invoked
-      if (
-        session?.tokens?.accessToken.payload.exp &&
-        new Date(session?.tokens?.accessToken.payload.exp * 1000) < new Date()
-      ) {
+      if (forceRefresh || isAccessTokenExpired(session)) {
         console.info("Refreshing auth tokens...");
         const newSession = await refreshTokens();
         currentSession = newSession;
+        setSession(newSession);
       }
+      return currentSession?.tokens?.accessToken?.toString();
+    },
+    [session, isAccessTokenExpired],
+  );
+
+  const apiClient = useCallback(
+    async (input: string | URL | Request, options: RequestInit = {}) => {
+      const accessToken = await ensureValidAccessToken();
 
       const headerObj: HeadersInit = {
         "Content-Type": "application/json",
       };
-      if (currentSession && currentSession.tokens) {
-        headerObj["Authorization"] =
-          `Bearer ${currentSession.tokens.accessToken.toString()}`;
+      if (accessToken) {
+        headerObj["Authorization"] = `Bearer ${accessToken}`;
       }
       const config = {
         ...options,
@@ -67,13 +93,21 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 
       return fetch(input, config);
     },
-    [session],
+    [ensureValidAccessToken],
   );
 
   const isAuthenticated = authStatus === "authenticated" && session !== null;
   return (
     <AuthContext.Provider
-      value={{ user, username, isAuthenticated, apiClient, getIdToken }}
+      value={{
+        user,
+        username,
+        isAuthenticated,
+        apiClient,
+        getIdToken,
+        getAccessToken,
+        ensureValidAccessToken,
+      }}
     >
       {children}
     </AuthContext.Provider>

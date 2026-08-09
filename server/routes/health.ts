@@ -1,6 +1,7 @@
 import express from "express";
 import { prisma } from "../prisma";
 import { client, healthCheck } from "../redis/redis";
+import { getWebSocketHealth } from "../websocket/hub";
 
 const router = express.Router();
 
@@ -15,11 +16,13 @@ router.get("/", async (req, res) => {
       return { ...connection, count: connection.count.toString() };
     });
     const pong = await pingRedis();
+    const websocket = getWebSocketHealth();
 
     return res.status(200).send({
       status: "UP",
       commit: gitCommitShort,
       redis: pong,
+      websocket,
       db: { status: "UP", connections },
     });
   } catch (err: unknown) {

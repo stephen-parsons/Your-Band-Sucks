@@ -5,8 +5,20 @@ import { AuthenticatedRequest } from "..";
 import { cognitoAuthorizer } from "../authorizer";
 import { SongCreateInput } from "../generated/prisma/models";
 import { prisma } from "../prisma";
+import {
+  fetchLeastLikedFromDb,
+  fetchMostLikedFromDb,
+  hydrateSongsByIds,
+  LEADERBOARD_LIMIT,
+} from "../queries/leaderboard";
 import { getRecommendedFeed } from "../queries/posts";
 import { userPostsCacheKey } from "../redis/keys";
+import {
+  ensureLeaderboardSeeded,
+  zAddSongScore,
+  zBottomSongs,
+  zTopSongs,
+} from "../redis/leaderboard";
 import { getCacheItem, setCacheItem } from "../redis/redis";
 import {
   BUCKETS,
@@ -14,6 +26,10 @@ import {
   createPresignedUrlWithClientPUT,
 } from "../service/S3Service";
 import { assertSafeFilename, UnsafeFilenameError } from "../util/filename";
+import {
+  broadcastLeaderboardUpdate,
+  notifySongLiked,
+} from "../websocket/publish";
 
 const DEFAULT_POST_LIMIT = 15;
 
@@ -81,6 +97,7 @@ router.post("/new", async (req: AuthenticatedRequest, res) => {
         key,
       },
     });
+    await zAddSongScore(newSong.id, newSong.likeCount);
     res.status(200).json(newSong);
   } catch (e) {
     console.error(e);
@@ -129,6 +146,12 @@ router.post("/like", async (req: AuthenticatedRequest, res) => {
       songId: number;
       liked: boolean;
     } = req.body;
+    if (typeof liked !== "boolean") {
+      return res.status(400).json({ error: "liked must be a boolean" });
+    }
+    if (typeof songId !== "number") {
+      return res.status(400).json({ error: "songId must be a number" });
+    }
     const type = liked ? "LIKE" : "DISLIKE";
     const likeResult = await prisma.likeDislike.findUnique({
       where: {
@@ -154,8 +177,7 @@ router.post("/like", async (req: AuthenticatedRequest, res) => {
 
     const incrementAmount = update.createdAt === update.updatedAt ? 1 : 2;
 
-    //update likeCount on song
-    const result = await prisma.song.update({
+    const song = await prisma.song.update({
       where: {
         id: songId,
       },
@@ -167,28 +189,46 @@ router.post("/like", async (req: AuthenticatedRequest, res) => {
           : { decrement: incrementAmount },
       },
       select: {
+        id: true,
+        title: true,
         likeCount: true,
+        userId: true,
+        user: { select: { name: true, avatar: true } },
       },
     });
-    res.status(200).json(result);
+
+    await zAddSongScore(song.id, song.likeCount);
+
+    broadcastLeaderboardUpdate({
+      songId: song.id,
+      likeCount: song.likeCount,
+      title: song.title,
+      user: song.user,
+    });
+
+    if (liked && song.userId !== userId) {
+      notifySongLiked(song.userId, {
+        songId: song.id,
+        title: song.title,
+        message: `Someone liked "${song.title}"!`,
+      });
+    }
+
+    res.status(200).json({ likeCount: song.likeCount });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Failed to process like" });
   }
 });
 
-router.get("/most-liked", async (req, res) => {
+router.get("/most-liked", async (_req, res) => {
   try {
-    const posts = await prisma.song.findMany({
-      include: {
-        user: { select: { name: true, avatar: true } },
-      },
-      omit: { userId: true, createdAt: true, updatedAt: true },
-      orderBy: {
-        likeCount: "desc",
-      },
-      take: 10,
-    });
+    await ensureLeaderboardSeeded();
+    const songIds = await zTopSongs(LEADERBOARD_LIMIT);
+    const posts =
+      songIds !== null
+        ? await hydrateSongsByIds(songIds)
+        : await fetchMostLikedFromDb();
     res.status(200).json(posts);
   } catch (error) {
     console.error(error);
@@ -196,18 +236,14 @@ router.get("/most-liked", async (req, res) => {
   }
 });
 
-router.get("/least-liked", async (req, res) => {
+router.get("/least-liked", async (_req, res) => {
   try {
-    const posts = await prisma.song.findMany({
-      include: {
-        user: { select: { name: true, avatar: true } },
-      },
-      omit: { userId: true, createdAt: true, updatedAt: true },
-      orderBy: {
-        likeCount: "asc",
-      },
-      take: 10,
-    });
+    await ensureLeaderboardSeeded();
+    const songIds = await zBottomSongs(LEADERBOARD_LIMIT);
+    const posts =
+      songIds !== null
+        ? await hydrateSongsByIds(songIds)
+        : await fetchLeastLikedFromDb();
     res.status(200).json(posts);
   } catch (error) {
     console.error(error);
