@@ -15,7 +15,7 @@ services:
       - "3000:3000"
     environment:
       # CRITICAL: Change localhost to the service names below in your app config
-      - DB_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres-db:5432/${DB_NAME}
+      - DB_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres-db:${DB_PORT}/${DB_NAME}
       - REDIS_URL=redis://redis-cache:6379
     depends_on:
       postgres-db:
@@ -32,7 +32,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_NAME}
     ports:
-      - "5432:5432" # Allows you to still connect via local GUI tools like PgAdmin/DBeaver
+      - "${EXTERNAL_DB_PORT}:5432" # Allows you to still connect via local GUI tools like PgAdmin/DBeaver
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
