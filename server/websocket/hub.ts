@@ -249,5 +249,5 @@ export function attachWebSocketServer(server: HttpServer): void {
     }
   });
 
-  hubLogger.info("WebSocket server attached at", chalk.green(WS_PATH));
+  console.info("✅ WebSocket server attached at", chalk.green(WS_PATH));
 }
