@@ -92,7 +92,7 @@ IAM_USER_AWS_SECRET_ACCESS_KEY="access_key"
 
 ## API Testing
 
-Run `npm run ping -- "--path=/path/to/api"` to execute a request against any api endpoint. Proper authentication is required, make sure to provide the variables from above as well as:
+Run `npm run ping -- --path=/path/to/api` to execute a request against any api endpoint. Proper authentication is required, make sure to provide the variables from above as well as:
 
 ```
 //username and password for the test user
@@ -102,6 +102,12 @@ COGNITO_TEST_USER_PASSWORD,
 
 in your local `.env` file.
 
+Example POST request:
+
+```
+npm run ping -- --path=/posts/like --method=POST --body='{"liked":true,"songId": 3}'
+```
+
 ## Troubleshooting
 
 If unable to run `psql`, you may need to symlink the command to your homebrew installation. Add `export PATH="/opt/homebrew/opt/postgresql@18/bin:$PATH"` to your bashrc or zshrc and source the changes. Make sure to specify the correct postgresql version you installed form Homebrew.
@@ -110,17 +116,21 @@ If unable to run `psql`, you may need to symlink the command to your homebrew in
 
 To mitigate issues with rolling back cdk deploys on initial resources setup, you may need to manually delete the postgres instance (Which has a RETAIN policy).
 
-Run 
+Run
+
 ```
 aws rds modify-db-instance \
     --db-instance-identifier your-db-identifier \
     --no-deletion-protection \
     --apply-immediately
 ```
+
 and
+
 ```
 aws rds delete-db-instance \
     --db-instance-identifier your-db-identifier \
     --skip-final-snapshot
 ```
-to manually delete the db.        
+
+to manually delete the db.

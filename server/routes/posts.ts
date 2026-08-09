@@ -175,7 +175,12 @@ router.post("/like", async (req: AuthenticatedRequest, res) => {
       create: { userId, songId, type },
     });
 
-    const incrementAmount = update.createdAt === update.updatedAt ? 1 : 2;
+    if (!update.updatedAt) {
+      throw new Error("UpdatedAt is null, this should never happen");
+    }
+
+    const incrementAmount =
+      update.createdAt.getTime() === update.updatedAt.getTime() ? 1 : 2;
 
     const song = await prisma.song.update({
       where: {
