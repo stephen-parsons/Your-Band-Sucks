@@ -1,5 +1,7 @@
 import { useLoadingContext } from "@/components/PageLoader";
 import AccountProfile from "@/components/Profile";
+import useMostPopularSongs from "@/hooks/use-most-popular-songs";
+import useRecentlyLikedSongs from "@/hooks/use-recently-liked-songs";
 import { UserProfile, UserService } from "@/service/user";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -12,6 +14,9 @@ export default function Profile() {
   const [error, setError] = useState<Error | null>(null);
 
   const service = useMemo(() => new UserService(apiClient), [apiClient]);
+
+  const popular = useMostPopularSongs({ enabled: !!user, service });
+  const liked = useRecentlyLikedSongs({ enabled: !!user, service });
 
   const refreshData = useCallback(() => {
     setUser(null);
@@ -48,7 +53,15 @@ export default function Profile() {
         </Text>
       )}
       {!error && isAuthenticated && user && !isLoading && (
-        <AccountProfile {...user} service={service} refreshData={refreshData} />
+        <AccountProfile
+          {...user}
+          service={service}
+          refreshData={refreshData}
+          mostPopularSongs={popular.songs}
+          mostPopularLoading={popular.isLoading}
+          recentlyLikedSongs={liked.songs}
+          recentlyLikedLoading={liked.isLoading}
+        />
       )}
     </View>
   );

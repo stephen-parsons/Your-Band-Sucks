@@ -1,10 +1,10 @@
 import Constants from "expo-constants";
 import {
-  GetPresignedUrlBody,
-  Posts,
-  PresignedResponse,
-  Tag,
-  UploadToS3Body,
+    GetPresignedUrlBody,
+    Posts,
+    PresignedResponse,
+    Tag,
+    UploadToS3Body,
 } from "./posts";
 
 export const SERVER_URL = Constants.expoConfig?.extra?.["apiUrl"];
@@ -14,6 +14,12 @@ export interface User {
   email: string;
   id: number;
   avatar?: string;
+}
+
+export interface ProfileSong {
+  id: number;
+  title: string;
+  likeCount: number;
 }
 
 export interface UserProfile extends User {
@@ -38,6 +44,26 @@ export class UserService {
       throw new Error("Failed to get user profile");
     }
     return (await result.json()) as UserProfile;
+  }
+
+  public async getMostPopularSongs(): Promise<ProfileSong[]> {
+    const result = await this.apiClient(
+      `${SERVER_URL}/users/current/popular-songs`,
+    );
+    if (!result.ok) {
+      throw new Error("Failed to get most popular songs");
+    }
+    return (await result.json()) as ProfileSong[];
+  }
+
+  public async getRecentlyLikedSongs(): Promise<ProfileSong[]> {
+    const result = await this.apiClient(
+      `${SERVER_URL}/users/current/liked-songs`,
+    );
+    if (!result.ok) {
+      throw new Error("Failed to get recently liked songs");
+    }
+    return (await result.json()) as ProfileSong[];
   }
 
   public async createNewUser(idToken: string) {

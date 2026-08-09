@@ -1,26 +1,34 @@
 import { AnimatedCount } from "@/components/ui/AnimtedCount";
-import { uploadToS3, UserProfile, UserService } from "@/service/user";
+import { Tag as TagType } from "@/service/posts";
+import {
+  ProfileSong,
+  uploadToS3,
+  UserProfile,
+  UserService,
+} from "@/service/user";
 import { assertSafeFilename, UnsafeFilenameError } from "@/util/filename";
 import {
-    FontAwesome,
-    Ionicons,
-    MaterialCommunityIcons,
+  FontAwesome,
+  Ionicons,
+  MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import React, { ReactNode, useCallback, useState } from "react";
+import React, { ReactNode, useCallback, useMemo, useState } from "react";
 import {
-    Alert,
-    Image,
-    Modal,
-    Platform,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, {
-    FadeInDown,
-    FadeInRight,
-    LinearTransition,
+  FadeInDown,
+  FadeInRight,
+  LinearTransition,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import S3Image from "./S3Image";
@@ -33,6 +41,24 @@ const MAX_FILE_SIZE = 10;
 
 //in bytes
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE * 1024 * 1024;
+
+const PROFILE_VIEWS = [
+  "Favorite Songs",
+  "Most Popular",
+  "Recently uploaded",
+  "Favorite Tags",
+] as const;
+
+type ProfileView = (typeof PROFILE_VIEWS)[number];
+
+interface AccountProfileProps extends UserProfile {
+  service: UserService;
+  refreshData: () => void;
+  mostPopularSongs: ProfileSong[] | null;
+  mostPopularLoading: boolean;
+  recentlyLikedSongs: ProfileSong[] | null;
+  recentlyLikedLoading: boolean;
+}
 
 class MaxFileSizeError extends Error {
   constructor() {
@@ -49,10 +75,16 @@ const AccountProfile = ({
   tags,
   refreshData,
   service,
-}: UserProfile & { service: UserService; refreshData: () => void }) => {
+  mostPopularSongs,
+  mostPopularLoading,
+  recentlyLikedSongs,
+  recentlyLikedLoading,
+}: AccountProfileProps) => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [file, setFile] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [activeView, setActiveView] =
+    useState<ProfileView>("Recently uploaded");
 
   const uploadImageFile = useCallback(async () => {
     if (uploading) {
@@ -156,6 +188,59 @@ const AccountProfile = ({
     }
   }, []);
 
+  const viewMeta = useMemo(() => {
+    switch (activeView) {
+      case "Favorite Songs":
+        return {
+          header: "Songs you liked:",
+          icon: "heart" as const,
+          iconColor: "red",
+        };
+      case "Most Popular":
+        return {
+          header: "Your most popular:",
+          icon: "fire" as const,
+          iconColor: "orange",
+        };
+      case "Favorite Tags":
+        return {
+          header: "We hear you like these tags:",
+          icon: "pound" as const,
+          iconColor: "grey",
+        };
+      case "Recently uploaded":
+      default:
+        return {
+          header: "Some cool stuff you just shared:",
+          icon: "heart" as const,
+          iconColor: "red",
+        };
+    }
+  }, [activeView]);
+
+  const isTableLoading =
+    (activeView === "Most Popular" &&
+      (mostPopularLoading || mostPopularSongs === null)) ||
+    (activeView === "Favorite Songs" &&
+      (recentlyLikedLoading || recentlyLikedSongs === null));
+
+  const tableSongs: ProfileSong[] = useMemo(() => {
+    switch (activeView) {
+      case "Favorite Songs":
+        return recentlyLikedSongs ?? [];
+      case "Most Popular":
+        return mostPopularSongs ?? [];
+      case "Recently uploaded":
+        return posts.map((post, index) => ({
+          id: post.id ?? index,
+          title: post.title,
+          likeCount: post.likeCount,
+        }));
+      default:
+        return [];
+    }
+  }, [activeView, recentlyLikedSongs, mostPopularSongs, posts]);
+
   return (
     <SafeAreaView style={styles.container}>
       <Header text={"Looking good!"} signOut />
@@ -198,75 +283,95 @@ const AccountProfile = ({
         </Animated.View>
       </Animated.View>
 
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={true}
+        contentContainerStyle={styles.tabBar}
+      >
+        {PROFILE_VIEWS.map((view) => {
+          const isActive = activeView === view;
+          return (
+            <TouchableOpacity
+              key={view}
+              onPress={() => setActiveView(view)}
+              style={[styles.tab, isActive && styles.tabActive]}
+            >
+              <ThemedText
+                style={[styles.tabText, isActive && styles.tabTextActive]}
+              >
+                {view}
+              </ThemedText>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
       <View style={styles.row}>
-        <ThemedText style={styles.uploadsHeader}>
-          Some cool stuff you just shared:
-        </ThemedText>
+        <ThemedText style={styles.uploadsHeader}>{viewMeta.header}</ThemedText>
         <MaterialCommunityIcons
           style={styles.uploadsHeaderIcon}
-          name={"heart"}
+          name={viewMeta.icon}
           size={20}
-          color={"red"}
+          color={viewMeta.iconColor}
         />
       </View>
 
-      {/* Items List */}
-      <Animated.FlatList
-        data={posts}
-        renderItem={({ index, item }) => (
-          <ListItem
-            index={index}
-            item={<ThemedText style={styles.cell}>{item.title}</ThemedText>}
-            count={item.likeCount}
-          />
-        )}
-        keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-        contentContainerStyle={styles.listPadding}
-        itemLayoutAnimation={LinearTransition.springify()} // Animate list changes
-        ListEmptyComponent={
-          <ThemedText style={styles.emptyText}>No items found.</ThemedText>
-        }
-      />
-
-      {tags?.length > 0 && (
-        <>
-          <View style={styles.row}>
-            <ThemedText style={styles.uploadsHeader}>
-              We hear you like these tags:
-            </ThemedText>
-            <MaterialCommunityIcons
-              style={[styles.uploadsHeaderIcon]}
-              name={"pound"}
-              size={20}
-              color={"grey"}
+      {isTableLoading ? (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color="#1DB954" />
+        </View>
+      ) : activeView === "Favorite Tags" ? (
+        <Animated.FlatList
+          data={tags ?? []}
+          renderItem={({ index, item }: { index: number; item: TagType }) => (
+            <ListItem
+              index={index}
+              item={
+                <View style={[styles.cell, { padding: 0 }]}>
+                  <Tag
+                    tag={item.description}
+                    idx={index}
+                    showCloseIcon={false}
+                  />
+                </View>
+              }
+              count={item.count || 0}
             />
-          </View>
-
-          {/* Items List */}
-          <Animated.FlatList
-            data={tags}
-            renderItem={({ index, item }) => (
-              <ListItem
-                index={index}
-                item={
-                  <View style={[styles.cell, { padding: 0 }]}>
-                    <Tag
-                      tag={item.description}
-                      idx={index}
-                      showCloseIcon={false}
-                    />
-                  </View>
-                }
-                count={item.count || 0}
-              />
-            )}
-            keyExtractor={(item, index) =>
-              item.id?.toString() || index.toString()
-            }
-            contentContainerStyle={styles.listPadding}
-            itemLayoutAnimation={LinearTransition.springify()} // Animate list changes
-          />
-        </>
+          )}
+          keyExtractor={(item, index) =>
+            item.id?.toString() || index.toString()
+          }
+          contentContainerStyle={styles.listPadding}
+          itemLayoutAnimation={LinearTransition.springify()}
+          ListEmptyComponent={
+            <ThemedText style={styles.emptyText}>No items found.</ThemedText>
+          }
+        />
+      ) : (
+        <Animated.FlatList
+          data={tableSongs}
+          renderItem={({
+            index,
+            item,
+          }: {
+            index: number;
+            item: ProfileSong;
+          }) => (
+            <ListItem
+              index={index}
+              item={<ThemedText style={styles.cell}>{item.title}</ThemedText>}
+              count={item.likeCount}
+            />
+          )}
+          keyExtractor={(item, index) =>
+            item.id?.toString() || index.toString()
+          }
+          contentContainerStyle={styles.listPadding}
+          itemLayoutAnimation={LinearTransition.springify()}
+          ListEmptyComponent={
+            <ThemedText style={styles.emptyText}>No items found.</ThemedText>
+          }
+        />
       )}
 
       {/* Upload Modal */}
@@ -342,7 +447,6 @@ function ListItem({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: "black",
   },
   header: {
@@ -464,6 +568,35 @@ const styles = StyleSheet.create({
   uploadsHeaderIcon: {
     paddingRight: 18,
     marginTop: 4,
+  },
+  tabBar: {
+    paddingHorizontal: 8,
+    paddingBottom: 12,
+    gap: 8,
+    alignItems: "center",
+  },
+  tab: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  tabActive: {
+    borderBottomColor: "#1DB954",
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#888",
+  },
+  tabTextActive: {
+    color: "#fff",
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
   },
   previewImage: {
     height: 200,

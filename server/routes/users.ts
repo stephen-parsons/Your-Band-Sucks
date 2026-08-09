@@ -5,6 +5,7 @@ import { AuthenticatedRequest } from "..";
 import { cognitoAuthorizer } from "../authorizer";
 import config from "../config";
 import { prisma } from "../prisma";
+import { getMostPopularSongs, getRecentlyLikedSongs } from "../queries/users";
 import { IdTokenClaimsPayload, verifyIdToken } from "../service/CognitoService";
 import {
   createPresignedUrlWithClientPUT,
@@ -71,6 +72,28 @@ router.get("/current", async (req: AuthenticatedRequest, res) => {
     res
       .status(500)
       .json({ error: `Failed to fetch user by id: ${req.userId}` });
+  }
+});
+
+router.get("/current/popular-songs", async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const songs = await getMostPopularSongs(userId);
+    res.status(200).json(songs);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to fetch most popular songs" });
+  }
+});
+
+router.get("/current/liked-songs", async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const songs = await getRecentlyLikedSongs(userId);
+    res.status(200).json(songs);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to fetch recently liked songs" });
   }
 });
 
