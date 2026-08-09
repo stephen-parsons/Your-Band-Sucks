@@ -1,6 +1,6 @@
 import { Post, Posts } from "@/service/posts";
-import React, { useEffect } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -21,6 +21,9 @@ type LeaderboardProps = {
   mostLiked: Posts;
   leastLiked: Posts;
 };
+
+const LEADERBOARD_VIEWS = ["Most Liked", "Least Liked"] as const;
+type LeaderboardView = (typeof LEADERBOARD_VIEWS)[number];
 
 const medal = (rank: number) => {
   if (rank === 1) return "🥇";
@@ -109,26 +112,17 @@ const Table: React.FC<TableProps> = ({ title, data }) => {
   const rows = data.slice(0, 10);
 
   return (
-    <ScrollView style={styles.tableContainer}>
+    <View style={styles.tableContainer}>
       <ThemedText style={styles.tableTitle}>{title}</ThemedText>
 
       <Podium data={rows} />
 
       <View style={styles.table}>
-        {/* Header */}
-        {/* <View style={[styles.row, styles.headerRow]}>
-          <ThemedText style={[styles.rankCell, styles.header]}>#</ThemedText>
-          <ThemedText style={[styles.cell, styles.header]}>User</ThemedText>
-          <ThemedText style={[styles.cell, styles.header]}>Title</ThemedText>
-          <ThemedText style={[styles.countCell, styles.header]}>Count</ThemedText>
-        </View> */}
-
-        {/* Rows */}
         {rows.map((item, index) => {
           const rank = index + 1;
 
           return (
-            <View key={index} style={styles.row}>
+            <View key={item.id ?? index} style={styles.row}>
               <ThemedText style={styles.rankCell}>{medal(rank)}</ThemedText>
               <ThemedText style={styles.cell}>{item.user.name}</ThemedText>
               <ThemedText style={styles.cell}>{item.title}</ThemedText>
@@ -137,7 +131,7 @@ const Table: React.FC<TableProps> = ({ title, data }) => {
           );
         })}
       </View>
-    </ScrollView>
+    </View>
   );
 };
 
@@ -145,18 +139,73 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   mostLiked = [],
   leastLiked = [],
 }) => {
+  const [activeView, setActiveView] = useState<LeaderboardView>("Most Liked");
+
+  const isMostLiked = activeView === "Most Liked";
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView>
       <Header text="Climb the ladder" />
-      <Table title="The most popular songs on the internet!" data={mostLiked} />
-      <Table title="The worst songs we've ever heard...." data={leastLiked} />
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabBar}
+      >
+        {LEADERBOARD_VIEWS.map((view) => {
+          const isActive = activeView === view;
+          return (
+            <TouchableOpacity
+              key={view}
+              onPress={() => setActiveView(view)}
+              style={[styles.tab, isActive && styles.tabActive]}
+            >
+              <ThemedText
+                style={[styles.tabText, isActive && styles.tabTextActive]}
+              >
+                {view}
+              </ThemedText>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {isMostLiked ? (
+        <Table
+          title="The most popular songs on the internet!"
+          data={mostLiked}
+        />
+      ) : (
+        <Table title="The worst songs we've ever heard...." data={leastLiked} />
+      )}
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  tabBar: {
+    paddingHorizontal: 8,
+    paddingTop: 0,
+    paddingBottom: 8,
+    gap: 8,
+    alignItems: "center",
+  },
+  tab: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  tabActive: {
+    borderBottomColor: "#1DB954",
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#888",
+  },
+  tabTextActive: {
+    color: "#fff",
   },
 
   /* PODIUM */
@@ -187,8 +236,6 @@ const styles = StyleSheet.create({
   },
 
   podiumUser: {
-    // flexShrink: 1,
-    // height: 20,
     textAlign: "center",
     fontWeight: "bold",
     marginTop: 4,
@@ -235,16 +282,12 @@ const styles = StyleSheet.create({
   },
 
   table: {
-    // borderWidth: 1,
-    // borderColor: "#ddd",
     borderRadius: 6,
     overflow: "hidden",
   },
 
   row: {
     flexDirection: "row",
-    // borderBottomWidth: 1,
-    // borderBottomColor: "#eee",
   },
 
   headerRow: {
