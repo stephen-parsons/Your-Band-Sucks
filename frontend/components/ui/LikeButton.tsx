@@ -139,8 +139,6 @@ function LikeBarComponent({ songId, like }: LikeBarProps) {
   const [voted, setVoted] = useState<LikeBarProps["like"]>(like);
   const likedSharedValue = useSharedValue(likeToInt(like));
 
-  console.log("like", typeof like);
-
   return (
     <View style={styles.likeButton}>
       <View style={styles.likeView}>

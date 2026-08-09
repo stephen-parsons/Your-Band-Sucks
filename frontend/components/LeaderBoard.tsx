@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  /* AVATR*/
+  /* AVATAR */
 
   avatarContainer: {
     position: "absolute",

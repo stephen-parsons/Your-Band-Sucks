@@ -16,13 +16,13 @@ Route53 (DNS account) ──► ALB (HTTPS) ──► ECS Fargate (Express)
                    (private)               Redis (private)      (imported)
 ```
 
-| Piece | Notes |
-| --- | --- |
-| **Stack** | `YourBandSucksBackend` in `bin/cdk.ts` |
-| **S3 / Cognito** | Imported by ID (not created/destroyed by this stack) |
-| **Networking** | VPC, ALB, Fargate (Docker image from `../server`), RDS, Redis |
-| **DNS / TLS** | ACM in the app account; validation + alias via assume-role into the DNS account |
-| **Config** | Resource IDs loaded from `../server/.env` (`lib/env.ts`) |
+| Piece            | Notes                                                                           |
+| ---------------- | ------------------------------------------------------------------------------- |
+| **Stack**        | `YourBandSucksBackend` in `bin/cdk.ts`                                          |
+| **S3 / Cognito** | Imported by ID (not created/destroyed by this stack)                            |
+| **Networking**   | VPC, ALB, Fargate (Docker image from `../server`), RDS, Redis                   |
+| **DNS / TLS**    | ACM in the app account; validation + alias via assume-role into the DNS account |
+| **Config**       | Resource IDs loaded from `../server/.env` (`lib/env.ts`)                        |
 
 App container: entrypoint runs Prisma generate/migrate, then `node ./bin/www`. ALB health check is `/ping`; `/health` reports DB/Redis.
 
@@ -42,6 +42,7 @@ npx cdk synth          # CloudFormation template
 npx cdk diff           # pending changes vs deployed stack
 npx cdk deploy YourBandSucksBackend --require-approval never
 npx cdk destroy YourBandSucksBackend   # tear down (termination protection may need disabling first)
+npx cdk gc --unstable=gc --type=ecr # Delete any unused images in ECR
 ```
 
 Useful flags: `--progress events`, `--exclusively` (single stack).

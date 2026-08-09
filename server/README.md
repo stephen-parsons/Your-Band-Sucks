@@ -47,6 +47,8 @@ From the server folder run `docker compose up -d`. Make sure that your local pos
 
 WARN: local development/hot reloading is not enabled yet for Docker.
 
+To reload the server run `docker compose up -d --build server`. This rebuilds and restarts ONLY the server in the running container.
+
 Add the following env vars to support a Docker based postgres connection:
 
 ```

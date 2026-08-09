@@ -24,7 +24,6 @@ export default function Feed() {
   const viewabilityConfigCallback = useRef<
     ViewabilityConfigCallbackPair["onViewableItemsChanged"]
   >(({ changed }) => {
-    console.log("Changed: ", changed);
     changed.forEach((item) => {
       //clear the audio player when the post moves out of view
       //TODO: reset the ui for that player that is not visible anymore
@@ -49,9 +48,6 @@ export default function Feed() {
     () => (posts ? typeof currentPost?.like === "string" : false),
     [posts, currentPost],
   );
-
-  console.log(currentItem, currentPost);
-  console.log("shouldScrollEnable", shouldScrollEnable);
 
   return (
     <SafeAreaView
