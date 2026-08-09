@@ -5,9 +5,12 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: band-app-server
-    volumes:
-      - .:/app
-      - /app/node_modules # Prevents your local node_modules from overwriting the container's linux node_modules
+    env_file:
+      - .env
+    # TODO: Uncomment this when ready to enable hot reloading
+    # volumes:
+    #   - .:/app
+    #   - /app/node_modules # Prevents your local node_modules from overwriting the container's linux node_modules
     ports:
       - "3000:3000"
     environment:
