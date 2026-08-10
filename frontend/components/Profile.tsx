@@ -20,7 +20,6 @@ import {
   Image,
   Modal,
   Platform,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -34,6 +33,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import S3Image from "./S3Image";
 import { ThemedText } from "./themed-text";
 import { Header } from "./ui/Header";
+import { TableTab } from "./ui/TableTab";
 import Tag from "./ui/Tag";
 
 //in megabytes
@@ -283,28 +283,11 @@ const AccountProfile = ({
         </Animated.View>
       </Animated.View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={true}
-        contentContainerStyle={styles.tabBar}
-      >
-        {PROFILE_VIEWS.map((view) => {
-          const isActive = activeView === view;
-          return (
-            <TouchableOpacity
-              key={view}
-              onPress={() => setActiveView(view)}
-              style={[styles.tab, isActive && styles.tabActive]}
-            >
-              <ThemedText
-                style={[styles.tabText, isActive && styles.tabTextActive]}
-              >
-                {view}
-              </ThemedText>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      <TableTab
+        tabs={PROFILE_VIEWS}
+        activeTab={activeView}
+        onChange={setActiveView}
+      />
 
       <View style={styles.row}>
         <ThemedText style={styles.uploadsHeader}>{viewMeta.header}</ThemedText>
@@ -568,29 +551,6 @@ const styles = StyleSheet.create({
   uploadsHeaderIcon: {
     paddingRight: 18,
     marginTop: 4,
-  },
-  tabBar: {
-    paddingHorizontal: 8,
-    paddingBottom: 12,
-    gap: 8,
-    alignItems: "center",
-  },
-  tab: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
-  },
-  tabActive: {
-    borderBottomColor: "#1DB954",
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#888",
-  },
-  tabTextActive: {
-    color: "#fff",
   },
   loaderContainer: {
     flex: 1,

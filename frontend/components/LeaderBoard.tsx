@@ -1,6 +1,6 @@
 import { Post, Posts } from "@/service/posts";
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -11,6 +11,7 @@ import S3Image from "./S3Image";
 import { ThemedText } from "./themed-text";
 import { AnimatedCount } from "./ui/AnimtedCount";
 import { Header } from "./ui/Header";
+import { TableTab } from "./ui/TableTab";
 
 type TableProps = {
   title: string;
@@ -147,28 +148,12 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
     <ScrollView>
       <Header text="Climb the ladder" />
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabBar}
-      >
-        {LEADERBOARD_VIEWS.map((view) => {
-          const isActive = activeView === view;
-          return (
-            <TouchableOpacity
-              key={view}
-              onPress={() => setActiveView(view)}
-              style={[styles.tab, isActive && styles.tabActive]}
-            >
-              <ThemedText
-                style={[styles.tabText, isActive && styles.tabTextActive]}
-              >
-                {view}
-              </ThemedText>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      <TableTab
+        tabs={LEADERBOARD_VIEWS}
+        activeTab={activeView}
+        onChange={setActiveView}
+        evenly
+      />
 
       {isMostLiked ? (
         <Table
@@ -183,31 +168,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  tabBar: {
-    paddingHorizontal: 8,
-    paddingTop: 0,
-    paddingBottom: 8,
-    gap: 8,
-    alignItems: "center",
-  },
-  tab: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
-  },
-  tabActive: {
-    borderBottomColor: "#1DB954",
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#888",
-  },
-  tabTextActive: {
-    color: "#fff",
-  },
-
   /* PODIUM */
 
   podiumContainer: {
