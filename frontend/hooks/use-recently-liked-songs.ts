@@ -1,5 +1,7 @@
 import { ProfileSong, UserService } from "@/service/user";
-import { useEffect, useState } from "react";
+import { bumpLikeCountIfPresent } from "@/util/likeCountList";
+import { LikeCountUpdatePayload } from "@/util/websocket";
+import { useCallback, useEffect, useState } from "react";
 
 interface UseRecentlyLikedSongsArgs {
   enabled: boolean;
@@ -31,5 +33,17 @@ export default function useRecentlyLikedSongs({
     if (enabled && songs === null && !error) fetchSongs();
   }, [enabled, songs, error, service]);
 
-  return { songs, isLoading, error };
+  const applyLikeCountUpdate = useCallback(
+    (payload: LikeCountUpdatePayload): void => {
+      setSongs((prev) => {
+        if (!prev) {
+          return prev;
+        }
+        return bumpLikeCountIfPresent(prev, payload) ?? prev;
+      });
+    },
+    [],
+  );
+
+  return { songs, isLoading, error, applyLikeCountUpdate };
 }

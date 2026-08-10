@@ -33,6 +33,7 @@ router.get("/current", async (req: AuthenticatedRequest, res) => {
         avatar: true,
         songs: {
           select: {
+            id: true,
             title: true,
             likeCount: true,
           },

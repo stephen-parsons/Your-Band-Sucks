@@ -1,4 +1,4 @@
-export interface LeaderboardUpdatePayload {
+export interface LikeCountUpdatePayload {
   songId: number;
   likeCount: number;
   title: string;
@@ -12,14 +12,8 @@ export interface SongLikedNotificationPayload {
 }
 
 export type WsServerEvent =
-  | { type: "leaderboard:update"; payload: LeaderboardUpdatePayload }
+  | { type: "likeCountUpdate"; payload: LikeCountUpdatePayload }
   | { type: "notification:song_liked"; payload: SongLikedNotificationPayload };
-
-export type WsChannel = "leaderboard";
-
-export type WsClientMessage =
-  | { action: "subscribe"; channel: WsChannel }
-  | { action: "unsubscribe"; channel: WsChannel };
 
 export interface LikeNotification extends SongLikedNotificationPayload {
   id: string;
@@ -31,8 +25,7 @@ export function isWsServerEvent(value: unknown): value is WsServerEvent {
   }
   const event = value as Record<string, unknown>;
   return (
-    event.type === "leaderboard:update" ||
-    event.type === "notification:song_liked"
+    event.type === "likeCountUpdate" || event.type === "notification:song_liked"
   );
 }
 

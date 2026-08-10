@@ -1,8 +1,11 @@
 import { useLoadingContext } from "@/components/PageLoader";
 import AccountProfile from "@/components/Profile";
+import { useWebSocketContext } from "@/components/WebSocketProvider";
 import useMostPopularSongs from "@/hooks/use-most-popular-songs";
 import useRecentlyLikedSongs from "@/hooks/use-recently-liked-songs";
 import { UserProfile, UserService } from "@/service/user";
+import { bumpLikeCountIfPresent } from "@/util/likeCountList";
+import { LikeCountUpdatePayload } from "@/util/websocket";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useAuthContext } from "../auth";
@@ -12,6 +15,7 @@ export default function Profile() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const { isLoading, setIsLoading } = useLoadingContext();
   const [error, setError] = useState<Error | null>(null);
+  const { subscribeLikeCountUpdate } = useWebSocketContext();
 
   const service = useMemo(() => new UserService(apiClient), [apiClient]);
 
@@ -21,6 +25,28 @@ export default function Profile() {
   const refreshData = useCallback(() => {
     setUser(null);
   }, []);
+
+  const onLikeCountUpdate = useCallback(
+    (payload: LikeCountUpdatePayload) => {
+      popular.applyLikeCountUpdate(payload);
+      liked.applyLikeCountUpdate(payload);
+      setUser((prev) => {
+        if (!prev) {
+          return prev;
+        }
+        const nextSongs = bumpLikeCountIfPresent(prev.songs, payload);
+        return nextSongs ? { ...prev, songs: nextSongs } : prev;
+      });
+    },
+    [popular.applyLikeCountUpdate, liked.applyLikeCountUpdate],
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      return;
+    }
+    return subscribeLikeCountUpdate(onLikeCountUpdate);
+  }, [isAuthenticated, user, subscribeLikeCountUpdate, onLikeCountUpdate]);
 
   useEffect(() => {
     async function fetchUser() {

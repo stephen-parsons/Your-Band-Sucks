@@ -1,10 +1,10 @@
 import chalk from "chalk";
 import type { Server as HttpServer, IncomingMessage } from "http";
 import { parse as parseUrl } from "url";
-import { RawData, WebSocket, WebSocketServer } from "ws";
+import { WebSocket, WebSocketServer } from "ws";
 import { resolveUserIdFromAccessToken } from "../auth/resolveUser";
 import { moduleLogger } from "../util/logger";
-import { isWsClientMessage, WsChannel, WsServerEvent } from "./events";
+import { WsServerEvent } from "./events";
 
 const WS_PATH = "/ws";
 const PING_INTERVAL_MS = 30_000;
@@ -14,11 +14,9 @@ const hubLogger = moduleLogger("websocket/hub");
 interface AuthenticatedSocket extends WebSocket {
   userId: number;
   isAlive: boolean;
-  channels: Set<WsChannel>;
 }
 
 const socketsByUserId = new Map<number, Set<AuthenticatedSocket>>();
-const channelSubscribers = new Map<WsChannel, Set<AuthenticatedSocket>>();
 
 let wss: WebSocketServer | null = null;
 let pingInterval: ReturnType<typeof setInterval> | null = null;
@@ -43,25 +41,7 @@ function removeFromUserMap(socket: AuthenticatedSocket): void {
   }
 }
 
-function subscribe(socket: AuthenticatedSocket, channel: WsChannel): void {
-  socket.channels.add(channel);
-  let set = channelSubscribers.get(channel);
-  if (!set) {
-    set = new Set();
-    channelSubscribers.set(channel, set);
-  }
-  set.add(socket);
-}
-
-function unsubscribe(socket: AuthenticatedSocket, channel: WsChannel): void {
-  socket.channels.delete(channel);
-  channelSubscribers.get(channel)?.delete(socket);
-}
-
 function cleanupSocket(socket: AuthenticatedSocket): void {
-  for (const channel of socket.channels) {
-    unsubscribe(socket, channel);
-  }
   removeFromUserMap(socket);
 }
 
@@ -71,24 +51,19 @@ function sendJson(socket: WebSocket, event: WsServerEvent): void {
   }
 }
 
-export function broadcastToChannel(
-  channel: WsChannel,
-  event: WsServerEvent,
-): void {
-  const subscribers = channelSubscribers.get(channel);
-  const recipientCount = subscribers?.size ?? 0;
+export function broadcastToAll(event: WsServerEvent): void {
+  if (!wss) {
+    return;
+  }
+  const recipientCount = wss.clients.size;
   hubLogger.info(
     "broadcast",
     chalk.cyan(event.type),
-    "→ channel",
-    chalk.cyan(channel),
-    `(${recipientCount} subscriber${recipientCount === 1 ? "" : "s"})`,
+    "→ all clients",
+    `(${recipientCount} socket${recipientCount === 1 ? "" : "s"})`,
   );
-  if (!subscribers || recipientCount === 0) {
-    return;
-  }
-  for (const socket of subscribers) {
-    sendJson(socket, event);
+  for (const client of wss.clients) {
+    sendJson(client, event);
   }
 }
 
@@ -115,24 +90,17 @@ export interface WebSocketHealth {
   path: string;
   clients: number;
   users: number;
-  channels: Record<string, number>;
 }
 
 /**
  * Reports whether the WebSocket server is attached and current connection counts.
  */
 export function getWebSocketHealth(): WebSocketHealth {
-  const channels: Record<string, number> = {};
-  for (const [channel, subscribers] of channelSubscribers) {
-    channels[channel] = subscribers.size;
-  }
-
   return {
     status: wss ? "HEALTHY" : "UNHEALTHY",
     path: WS_PATH,
     clients: wss?.clients.size ?? 0,
     users: socketsByUserId.size,
-    channels,
   };
 }
 
@@ -177,41 +145,12 @@ export function attachWebSocketServer(server: HttpServer): void {
       const authed = socket as AuthenticatedSocket;
       authed.userId = userId;
       authed.isAlive = true;
-      authed.channels = new Set();
       addToUserMap(authed);
 
       hubLogger.info("WS connected for userId:", chalk.cyan(userId));
 
       authed.on("pong", () => {
         authed.isAlive = true;
-      });
-
-      authed.on("message", (raw: RawData) => {
-        try {
-          const parsed: unknown = JSON.parse(raw.toString());
-          if (!isWsClientMessage(parsed)) {
-            return;
-          }
-          if (parsed.action === "subscribe") {
-            subscribe(authed, parsed.channel);
-            hubLogger.info(
-              "userId",
-              chalk.cyan(userId),
-              "subscribed to",
-              parsed.channel,
-            );
-          } else {
-            unsubscribe(authed, parsed.channel);
-            hubLogger.info(
-              "userId",
-              chalk.cyan(userId),
-              "unsubscribed from",
-              parsed.channel,
-            );
-          }
-        } catch (error) {
-          hubLogger.error("Failed to handle WS message:", error);
-        }
       });
 
       authed.on("close", () => {

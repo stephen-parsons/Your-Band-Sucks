@@ -27,7 +27,7 @@ import {
 } from "../service/S3Service";
 import { assertSafeFilename, UnsafeFilenameError } from "../util/filename";
 import {
-  broadcastLeaderboardUpdate,
+  broadcastLikeCountUpdate,
   notifySongLiked,
 } from "../websocket/publish";
 
@@ -204,7 +204,7 @@ router.post("/like", async (req: AuthenticatedRequest, res) => {
 
     await zAddSongScore(song.id, song.likeCount);
 
-    broadcastLeaderboardUpdate({
+    broadcastLikeCountUpdate({
       songId: song.id,
       likeCount: song.likeCount,
       title: song.title,

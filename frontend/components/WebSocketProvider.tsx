@@ -2,10 +2,9 @@ import { useAuthContext } from "@/app/auth";
 import { SERVER_URL } from "@/service/posts";
 import {
   isWsServerEvent,
-  LeaderboardUpdatePayload,
+  LikeCountUpdatePayload,
   LikeNotification,
   toWebSocketUrl,
-  WsClientMessage,
   WsServerEvent,
 } from "@/util/websocket";
 import {
@@ -18,10 +17,10 @@ import {
   useState,
 } from "react";
 
-type LeaderboardHandler = (payload: LeaderboardUpdatePayload) => void;
+type LikeCountUpdateHandler = (payload: LikeCountUpdatePayload) => void;
 
 interface IWebSocketContext {
-  subscribeLeaderboard: (handler: LeaderboardHandler) => () => void;
+  subscribeLikeCountUpdate: (handler: LikeCountUpdateHandler) => () => void;
   notifications: LikeNotification[];
   dismissNotification: (id: string) => void;
 }
@@ -36,12 +35,11 @@ export function WebSocketProvider({ children }: PropsWithChildren) {
   const { isAuthenticated, ensureValidAccessToken } = useAuthContext();
   const [notifications, setNotifications] = useState<LikeNotification[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
-  const leaderboardHandlersRef = useRef<Set<LeaderboardHandler>>(new Set());
+  const likeCountHandlersRef = useRef<Set<LikeCountUpdateHandler>>(new Set());
   const shouldConnectRef = useRef(false);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const subscribedToLeaderboardRef = useRef(false);
   const unauthorizedRetriesRef = useRef(0);
   const connectRef = useRef<() => Promise<void>>(async () => undefined);
 
@@ -49,16 +47,9 @@ export function WebSocketProvider({ children }: PropsWithChildren) {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
-  const sendMessage = useCallback((message: WsClientMessage) => {
-    const socket = socketRef.current;
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(message));
-    }
-  }, []);
-
   const handleServerEvent = useCallback((event: WsServerEvent) => {
-    if (event.type === "leaderboard:update") {
-      for (const handler of leaderboardHandlersRef.current) {
+    if (event.type === "likeCountUpdate") {
+      for (const handler of likeCountHandlersRef.current) {
         handler(event.payload);
       }
       return;
@@ -106,9 +97,6 @@ export function WebSocketProvider({ children }: PropsWithChildren) {
 
     socket.onopen = () => {
       unauthorizedRetriesRef.current = 0;
-      if (subscribedToLeaderboardRef.current) {
-        sendMessage({ action: "subscribe", channel: "leaderboard" });
-      }
     };
 
     socket.onmessage = (messageEvent) => {
@@ -158,12 +146,7 @@ export function WebSocketProvider({ children }: PropsWithChildren) {
     socket.onerror = () => {
       socket.close();
     };
-  }, [
-    ensureValidAccessToken,
-    handleServerEvent,
-    scheduleReconnect,
-    sendMessage,
-  ]);
+  }, [ensureValidAccessToken, handleServerEvent, scheduleReconnect]);
 
   connectRef.current = connect;
 
@@ -178,7 +161,6 @@ export function WebSocketProvider({ children }: PropsWithChildren) {
       }
       socketRef.current?.close();
       socketRef.current = null;
-      subscribedToLeaderboardRef.current = false;
       unauthorizedRetriesRef.current = 0;
       setNotifications([]);
     }
@@ -194,28 +176,19 @@ export function WebSocketProvider({ children }: PropsWithChildren) {
     };
   }, [isAuthenticated, connect]);
 
-  const subscribeLeaderboard = useCallback(
-    (handler: LeaderboardHandler): (() => void) => {
-      leaderboardHandlersRef.current.add(handler);
-      const shouldSubscribe = leaderboardHandlersRef.current.size === 1;
-      if (shouldSubscribe) {
-        subscribedToLeaderboardRef.current = true;
-        sendMessage({ action: "subscribe", channel: "leaderboard" });
-      }
+  const subscribeLikeCountUpdate = useCallback(
+    (handler: LikeCountUpdateHandler): (() => void) => {
+      likeCountHandlersRef.current.add(handler);
       return () => {
-        leaderboardHandlersRef.current.delete(handler);
-        if (leaderboardHandlersRef.current.size === 0) {
-          subscribedToLeaderboardRef.current = false;
-          sendMessage({ action: "unsubscribe", channel: "leaderboard" });
-        }
+        likeCountHandlersRef.current.delete(handler);
       };
     },
-    [sendMessage],
+    [],
   );
 
   return (
     <WebSocketContext.Provider
-      value={{ subscribeLeaderboard, notifications, dismissNotification }}
+      value={{ subscribeLikeCountUpdate, notifications, dismissNotification }}
     >
       {children}
     </WebSocketContext.Provider>

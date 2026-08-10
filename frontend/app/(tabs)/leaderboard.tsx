@@ -2,7 +2,8 @@ import { Leaderboard } from "@/components/LeaderBoard";
 import { usePostContext } from "@/components/PostProvider";
 import { useWebSocketContext } from "@/components/WebSocketProvider";
 import { Post, Posts } from "@/service/posts";
-import { LeaderboardUpdatePayload } from "@/util/websocket";
+import { patchRankedLikeCountList } from "@/util/likeCountList";
+import { LikeCountUpdatePayload } from "@/util/websocket";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,7 +16,7 @@ interface LeaderboardState {
   leastLiked: Posts;
 }
 
-function toLeaderboardPost(payload: LeaderboardUpdatePayload): Post {
+function toLeaderboardPost(payload: LikeCountUpdatePayload): Post {
   return {
     id: payload.songId,
     title: payload.title,
@@ -32,67 +33,42 @@ function toLeaderboardPost(payload: LeaderboardUpdatePayload): Post {
   };
 }
 
-function applyLeaderboardUpdate(
+function applyLikeCountUpdate(
   state: LeaderboardState,
-  payload: LeaderboardUpdatePayload,
+  payload: LikeCountUpdatePayload,
 ): LeaderboardState {
-  const nextPost = toLeaderboardPost(payload);
-
-  const patchList = (list: Posts, ascending: boolean): Posts => {
-    const without = list.filter((post) => post.id !== payload.songId);
-    const existing = list.find((post) => post.id === payload.songId);
-    const merged: Post = existing
-      ? { ...existing, likeCount: payload.likeCount, title: payload.title }
-      : nextPost;
-
-    const edge = without[without.length - 1];
-    const shouldInclude =
-      existing !== undefined ||
-      without.length < LEADERBOARD_LIMIT ||
-      (ascending
-        ? payload.likeCount <= (edge?.likeCount ?? Infinity)
-        : payload.likeCount >= (edge?.likeCount ?? -Infinity));
-
-    if (!shouldInclude) {
-      return without.slice(0, LEADERBOARD_LIMIT);
-    }
-
-    return [...without, merged]
-      .sort((a, b) =>
-        ascending ? a.likeCount - b.likeCount : b.likeCount - a.likeCount,
-      )
-      .slice(0, LEADERBOARD_LIMIT);
-  };
-
   return {
-    mostLiked: patchList(state.mostLiked, false),
-    leastLiked: patchList(state.leastLiked, true),
+    mostLiked: patchRankedLikeCountList(state.mostLiked, payload, {
+      ascending: false,
+      limit: LEADERBOARD_LIMIT,
+      toItem: toLeaderboardPost,
+    }),
+    leastLiked: patchRankedLikeCountList(state.leastLiked, payload, {
+      ascending: true,
+      limit: LEADERBOARD_LIMIT,
+      toItem: toLeaderboardPost,
+    }),
   };
 }
 
 export default function LeaderBoardView() {
   const { service } = usePostContext();
   const { isAuthenticated } = useAuthContext();
-  const { subscribeLeaderboard } = useWebSocketContext();
+  const { subscribeLikeCountUpdate } = useWebSocketContext();
   const [boards, setBoards] = useState<LeaderboardState | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const onLeaderboardUpdate = useCallback(
-    (payload: LeaderboardUpdatePayload) => {
-      setBoards((prev) =>
-        prev ? applyLeaderboardUpdate(prev, payload) : prev,
-      );
-    },
-    [],
-  );
+  const onLikeCountUpdate = useCallback((payload: LikeCountUpdatePayload) => {
+    setBoards((prev) => (prev ? applyLikeCountUpdate(prev, payload) : prev));
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
       return;
     }
-    return subscribeLeaderboard(onLeaderboardUpdate);
-  }, [isAuthenticated, subscribeLeaderboard, onLeaderboardUpdate]);
+    return subscribeLikeCountUpdate(onLikeCountUpdate);
+  }, [isAuthenticated, subscribeLikeCountUpdate, onLikeCountUpdate]);
 
   useEffect(() => {
     async function fetchPosts() {

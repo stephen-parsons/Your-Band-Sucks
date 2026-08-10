@@ -1,14 +1,11 @@
-import {
-    LeaderboardUpdatePayload,
-    SongLikedNotificationPayload,
-} from "./events";
-import { broadcastToChannel, sendToUser } from "./hub";
+import { LikeCountUpdatePayload, SongLikedNotificationPayload } from "./events";
+import { broadcastToAll, sendToUser } from "./hub";
 
-export function broadcastLeaderboardUpdate(
-  payload: LeaderboardUpdatePayload,
+export function broadcastLikeCountUpdate(
+  payload: LikeCountUpdatePayload,
 ): void {
-  broadcastToChannel("leaderboard", {
-    type: "leaderboard:update",
+  broadcastToAll({
+    type: "likeCountUpdate",
     payload,
   });
 }
