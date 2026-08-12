@@ -3,15 +3,19 @@
 import express from "express";
 import { AuthenticatedRequest } from "..";
 import { cognitoAuthorizer } from "../authorizer";
-import { SongCreateInput } from "../generated/prisma/models";
-import { prisma } from "../prisma";
 import {
   fetchLeastLikedFromDb,
   fetchMostLikedFromDb,
   hydrateSongsByIds,
   LEADERBOARD_LIMIT,
 } from "../queries/leaderboard";
-import { getRecommendedFeed } from "../queries/posts";
+import {
+  createSong,
+  findLikeByUserAndSong,
+  getRecommendedFeed,
+  updateSongLikeCount,
+  upsertLikeDislike,
+} from "../queries/posts";
 import { userPostsCacheKey } from "../redis/keys";
 import {
   ensureLeaderboardSeeded,
@@ -80,22 +84,18 @@ router.post("/new", async (req: AuthenticatedRequest, res) => {
       title,
       key,
       tags: rawTags,
-    }: SongCreateInput & { tags: string[] } = req.body;
-    const newSong = await prisma.song.create({
-      data: {
-        description,
-        title,
-        userId,
-        tags: {
-          connectOrCreate: rawTags.map((tag) => ({
-            where: {
-              description: tag.toLowerCase(),
-            },
-            create: { description: tag.toLowerCase() },
-          })),
-        },
-        key,
-      },
+    }: {
+      description: string;
+      title: string;
+      key: string;
+      tags: string[];
+    } = req.body;
+    const newSong = await createSong({
+      description,
+      title,
+      userId,
+      key,
+      tags: rawTags,
     });
     await zAddSongScore(newSong.id, newSong.likeCount);
     res.status(200).json(newSong);
@@ -152,28 +152,12 @@ router.post("/like", async (req: AuthenticatedRequest, res) => {
     if (typeof songId !== "number") {
       return res.status(400).json({ error: "songId must be a number" });
     }
-    const type = liked ? "LIKE" : "DISLIKE";
-    const likeResult = await prisma.likeDislike.findUnique({
-      where: {
-        userId_songId: {
-          userId,
-          songId,
-        },
-      },
-    });
+    const type = liked ? "LIKE" : ("DISLIKE" as const);
+    const likeResult = await findLikeByUserAndSong(userId, songId);
     if (likeResult?.type.toUpperCase() === type) {
       throw new Error(`Song already liked: ${liked} by user: ${userId}`);
     }
-    const update = await prisma.likeDislike.upsert({
-      where: {
-        userId_songId: {
-          userId,
-          songId,
-        },
-      },
-      update: { type },
-      create: { userId, songId, type },
-    });
+    const update = await upsertLikeDislike(userId, songId, type);
 
     if (!update.updatedAt) {
       throw new Error("UpdatedAt is null, this should never happen");
@@ -182,25 +166,7 @@ router.post("/like", async (req: AuthenticatedRequest, res) => {
     const incrementAmount =
       update.createdAt.getTime() === update.updatedAt.getTime() ? 1 : 2;
 
-    const song = await prisma.song.update({
-      where: {
-        id: songId,
-      },
-      data: {
-        likeCount: liked
-          ? {
-              increment: incrementAmount,
-            }
-          : { decrement: incrementAmount },
-      },
-      select: {
-        id: true,
-        title: true,
-        likeCount: true,
-        userId: true,
-        user: { select: { name: true, avatar: true } },
-      },
-    });
+    const song = await updateSongLikeCount(songId, liked, incrementAmount);
 
     await zAddSongScore(song.id, song.likeCount);
 

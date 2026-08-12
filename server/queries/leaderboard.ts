@@ -41,3 +41,12 @@ export async function fetchLeastLikedFromDb() {
     take: LEADERBOARD_LIMIT,
   });
 }
+
+/**
+ * All song ids + likeCounts for seeding the Redis leaderboard ZSET.
+ */
+export async function fetchAllSongLikeCounts() {
+  return prisma.song.findMany({
+    select: { id: true, likeCount: true },
+  });
+}

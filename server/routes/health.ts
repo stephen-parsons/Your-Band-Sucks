@@ -1,5 +1,5 @@
 import express from "express";
-import { prisma } from "../prisma";
+import { getActivePgConnections } from "../queries/health";
 import { client, healthCheck } from "../redis/redis";
 import { getWebSocketHealth } from "../websocket/hub";
 
@@ -10,7 +10,7 @@ const gitCommitShort = gitCommit.slice(-7);
 
 router.get("/", async (req, res) => {
   try {
-    const connections = (await getActiveConnections()).map((connection) => {
+    const connections = (await getActivePgConnections()).map((connection) => {
       if (connection.state === null)
         return { count: connection.count.toString(), state: "idle" };
       return { ...connection, count: connection.count.toString() };
@@ -40,20 +40,6 @@ async function pingRedis() {
     console.error("Redis health check failed:", e);
     return "UNHEALTHY";
   }
-}
-
-async function getActiveConnections(): Promise<PGConnections[]> {
-  // Queries the pg_stat_activity view to fetch open connections
-  return await prisma.$queryRaw<PGConnections[]>`
-      SELECT state, count(*) 
-      FROM pg_stat_activity 
-      GROUP BY state;
-    `;
-}
-
-interface PGConnections {
-  state: string;
-  count: string;
 }
 
 export default router;

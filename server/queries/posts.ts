@@ -1,4 +1,5 @@
 import { Song } from "../generated/prisma/client";
+import { LikeType } from "../generated/prisma/enums";
 import { prisma } from "../prisma";
 
 // Define the shape of the query result
@@ -185,6 +186,93 @@ export async function allOtherSongs(userId: number) {
       userId: {
         not: userId,
       },
+    },
+  });
+}
+
+export interface CreateSongInput {
+  description: string;
+  title: string;
+  userId: number;
+  key: string;
+  tags: string[];
+}
+
+export async function createSong({
+  description,
+  title,
+  userId,
+  key,
+  tags,
+}: CreateSongInput) {
+  return prisma.song.create({
+    data: {
+      description,
+      title,
+      userId,
+      tags: {
+        connectOrCreate: tags.map((tag) => ({
+          where: {
+            description: tag.toLowerCase(),
+          },
+          create: { description: tag.toLowerCase() },
+        })),
+      },
+      key,
+    },
+  });
+}
+
+export async function findLikeByUserAndSong(userId: number, songId: number) {
+  return prisma.likeDislike.findUnique({
+    where: {
+      userId_songId: {
+        userId,
+        songId,
+      },
+    },
+  });
+}
+
+export async function upsertLikeDislike(
+  userId: number,
+  songId: number,
+  type: LikeType,
+) {
+  return prisma.likeDislike.upsert({
+    where: {
+      userId_songId: {
+        userId,
+        songId,
+      },
+    },
+    update: { type },
+    create: { userId, songId, type },
+  });
+}
+
+export async function updateSongLikeCount(
+  songId: number,
+  liked: boolean,
+  incrementAmount: number,
+) {
+  return prisma.song.update({
+    where: {
+      id: songId,
+    },
+    data: {
+      likeCount: liked
+        ? {
+            increment: incrementAmount,
+          }
+        : { decrement: incrementAmount },
+    },
+    select: {
+      id: true,
+      title: true,
+      likeCount: true,
+      userId: true,
+      user: { select: { name: true, avatar: true } },
     },
   });
 }

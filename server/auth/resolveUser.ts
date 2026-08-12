@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { prisma } from "../prisma";
+import { findUserIdByCognitoId } from "../queries/users";
 import { userIdCognitoIdCacheKey } from "../redis/keys";
 import { getCacheItem, setCacheItem } from "../redis/redis";
 import { verifyAccessToken } from "../service/CognitoService";
@@ -35,15 +35,10 @@ export async function resolveUserIdFromAccessToken(
 }
 
 async function findAndCacheUserId(cognitoId: string): Promise<number | null> {
-  const user = await prisma.user.findFirst({
-    where: { cognitoId: { equals: cognitoId } },
-    select: {
-      id: true,
-    },
-  });
-  if (user) {
-    await setCacheItem(userIdCognitoIdCacheKey(cognitoId), user.id);
-    return user.id;
+  const userId = await findUserIdByCognitoId(cognitoId);
+  if (userId) {
+    await setCacheItem(userIdCognitoIdCacheKey(cognitoId), userId);
+    return userId;
   }
   return null;
 }

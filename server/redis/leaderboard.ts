@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { prisma } from "../prisma";
+import { fetchAllSongLikeCounts } from "../queries/leaderboard";
 import { LEADERBOARD_SONGS_KEY } from "./keys";
 import { client } from "./redis";
 
@@ -78,9 +78,7 @@ export async function ensureLeaderboardSeeded(): Promise<boolean> {
     if (count > 0) {
       return true;
     }
-    const songs = await prisma.song.findMany({
-      select: { id: true, likeCount: true },
-    });
+    const songs = await fetchAllSongLikeCounts();
     if (songs.length === 0) {
       return true;
     }
