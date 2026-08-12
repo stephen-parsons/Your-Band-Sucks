@@ -13,6 +13,8 @@
 - Enforce strict null checks. Handle potential 'undefined' or 'null' errors gracefully with optional chaining (?.) or nullish coalescing (??).
 - Use descriptive, type-safe enums or const assertions (as const) for fixed configuration values.
 - Prefer modern ES6+ features (destructuring, arrow functions for callbacks, template literals).
+- Prefer Early returns: Best for guard clauses, input validation, null checks, and error handling.
+- Ternary operators: Best for inline assignments or simple, single-line variable declarations where the condition and results fit cleanly on one line.
 
 # 2. CODE OUTPUT CONSTRAINTS (TOKEN SAVING)
 
