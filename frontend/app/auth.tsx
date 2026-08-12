@@ -73,25 +73,46 @@ export default function AuthProvider({ children }: PropsWithChildren) {
     [session, isAccessTokenExpired],
   );
 
+  /**
+   * Wraps the fetch API with error handling and token refreshing.
+   * If the access token is expired, it will be refreshed and the request will be retried.
+   * @throws {Error} if the request is outside StatusCode 200-299
+   */
   const apiClient = useCallback(
     async (input: string | URL | Request, options: RequestInit = {}) => {
-      const accessToken = await ensureValidAccessToken();
+      try {
+        const accessToken = await ensureValidAccessToken();
 
-      const headerObj: HeadersInit = {
-        "Content-Type": "application/json",
-      };
-      if (accessToken) {
-        headerObj["Authorization"] = `Bearer ${accessToken}`;
+        const headerObj: HeadersInit = {
+          "Content-Type": "application/json",
+        };
+        if (accessToken) {
+          headerObj["Authorization"] = `Bearer ${accessToken}`;
+        }
+        const config = {
+          ...options,
+          headers: {
+            ...headerObj,
+            ...options.headers,
+          },
+        };
+
+        const response = await fetch(input, config);
+        if (!response.ok) {
+          const errorBody = await response.json();
+          throw new Error(
+            `HTTP error! status: ${response.status} ${response.statusText} ${JSON.stringify(errorBody)}`,
+          );
+        }
+        return response;
+      } catch (error) {
+        console.error(
+          "Error fetching from API client:",
+          (error as Error).message,
+          error,
+        );
+        throw error;
       }
-      const config = {
-        ...options,
-        headers: {
-          ...headerObj,
-          ...options.headers,
-        },
-      };
-
-      return fetch(input, config);
     },
     [ensureValidAccessToken],
   );

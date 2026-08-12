@@ -87,10 +87,10 @@ export default function LeaderBoardView() {
         setIsLoading(false);
       }
     }
-    if (isAuthenticated && boards === null) {
+    if (isAuthenticated && boards === null && !error) {
       fetchPosts();
     }
-  }, [boards, isAuthenticated, service]);
+  }, [boards, isAuthenticated, service, error]);
 
   return (
     <SafeAreaView style={styles.container}>

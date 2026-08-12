@@ -1,13 +1,11 @@
-import Constants from "expo-constants";
+import { ApiService } from "@/service/ApiService";
 import {
-    GetPresignedUrlBody,
-    Posts,
-    PresignedResponse,
-    Tag,
-    UploadToS3Body,
+  GetPresignedUrlBody,
+  Posts,
+  PresignedResponse,
+  Tag,
+  UploadToS3Body,
 } from "./posts";
-
-export const SERVER_URL = Constants.expoConfig?.extra?.["apiUrl"];
 
 export interface User {
   name: string;
@@ -32,104 +30,56 @@ interface CreateNewAvatarBody {
   key: string;
 }
 
-export class UserService {
-  private apiClient;
+export class UserService extends ApiService {
   constructor(apiClient: typeof fetch) {
-    this.apiClient = apiClient;
+    super(apiClient);
   }
 
-  public async getUserProfile() {
-    const result = await this.apiClient(`${SERVER_URL}/users/current`);
-    if (!result.ok) {
-      throw new Error("Failed to get user profile");
-    }
-    return (await result.json()) as UserProfile;
+  public async getUserProfile(): Promise<UserProfile> {
+    return this.fetch<UserProfile>("/users/current");
   }
 
   public async getMostPopularSongs(): Promise<ProfileSong[]> {
-    const result = await this.apiClient(
-      `${SERVER_URL}/users/current/popular-songs`,
-    );
-    if (!result.ok) {
-      throw new Error("Failed to get most popular songs");
-    }
-    return (await result.json()) as ProfileSong[];
+    return this.fetch<ProfileSong[]>("/users/current/popular-songs");
   }
 
   public async getRecentlyLikedSongs(): Promise<ProfileSong[]> {
-    const result = await this.apiClient(
-      `${SERVER_URL}/users/current/liked-songs`,
-    );
-    if (!result.ok) {
-      throw new Error("Failed to get recently liked songs");
-    }
-    return (await result.json()) as ProfileSong[];
+    return this.fetch<ProfileSong[]>("/users/current/liked-songs");
   }
 
-  public async createNewUser(idToken: string) {
-    const res = await this.apiClient(`${SERVER_URL}/users/new`, {
+  public async createNewUser(idToken: string): Promise<User> {
+    return this.fetch<User>("/users/new", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         idToken,
       }),
     });
-
-    if (!res.ok) {
-      throw new Error("Failed to create new user");
-    }
-
-    const data: User = await res.json();
-    return data;
   }
 
   public async getPresignedUrl({
     filename,
     contentType,
   }: GetPresignedUrlBody): Promise<PresignedResponse> {
-    const res = await this.apiClient(
-      `${SERVER_URL}/users/avatar/pre-signed-url`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          filename,
-          contentType,
-        }),
-      },
-    );
-
-    if (!res.ok) {
-      throw new Error("Failed to get presigned URL");
-    }
-
-    const data: PresignedResponse = await res.json();
-    return data;
+    return this.fetch<PresignedResponse>("/users/avatar/pre-signed-url", {
+      method: "POST",
+      body: JSON.stringify({
+        filename,
+        contentType,
+      }),
+    });
   }
 
-  public async createNewAvatar({ key }: CreateNewAvatarBody) {
-    const res = await this.apiClient(`${SERVER_URL}/users/avatar/update`, {
+  public async createNewAvatar({ key }: CreateNewAvatarBody): Promise<unknown> {
+    return this.fetch<unknown>("/users/avatar/update", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         key,
       }),
     });
-
-    if (!res.ok) {
-      throw new Error("Failed to create new avatar");
-    }
-    return await res.json();
   }
 
-  public async deleteAvatar() {
-    return await this.apiClient(`${SERVER_URL}/avatar/update/delete`, {
+  public async deleteAvatar(): Promise<unknown> {
+    return this.fetch<unknown>("/avatar/update/delete", {
       method: "POST",
     });
   }

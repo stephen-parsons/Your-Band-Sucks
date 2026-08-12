@@ -1,7 +1,7 @@
+import { ApiService, SERVER_URL } from "@/service/ApiService";
 import { User } from "@/service/user";
-import Constants from "expo-constants";
 
-export const SERVER_URL = Constants.expoConfig?.extra?.["apiUrl"];
+export { SERVER_URL };
 
 export interface PresignedResponse {
   url: string;
@@ -61,59 +61,45 @@ export type Like = "like" | "dislike";
 
 export type Posts = Post[];
 
-export class PostService {
-  public apiClient;
-  private updateLikeStatusState;
+export class PostService extends ApiService {
+  private updateLikeStatusState?: (id: number, status: Like) => void;
+
   constructor(
     apiClient: typeof fetch,
     updateLikeStatusState?: (id: number, status: Like) => void,
   ) {
-    this.apiClient = apiClient;
+    super(apiClient);
     this.updateLikeStatusState = updateLikeStatusState;
   }
 
-  public async getMostPopularPosts() {
-    const result = await this.apiClient(`${SERVER_URL}/posts/most-liked`);
-    return (await result.json()) as Posts;
+  public async getMostPopularPosts(): Promise<Posts> {
+    return this.fetch<Posts>("/posts/most-liked");
   }
 
-  public async getLeastPopularPosts() {
-    const result = await this.apiClient(`${SERVER_URL}/posts/least-liked`);
-    return (await result.json()) as Posts;
+  public async getLeastPopularPosts(): Promise<Posts> {
+    return this.fetch<Posts>("/posts/least-liked");
   }
 
   //todo: pagination
-  public async getPosts() {
-    const result = await this.apiClient(`${SERVER_URL}/posts`);
-    return (await result.json()) as Posts;
+  public async getPosts(): Promise<Posts> {
+    return this.fetch<Posts>("/posts");
   }
 
-  public async getTags() {
-    const result = await this.apiClient(`${SERVER_URL}/tags`);
-    return (await result.json()) as Tag[];
+  public async getTags(): Promise<Tag[]> {
+    return this.fetch<Tag[]>("/tags");
   }
 
   public async getPresignedUrl({
     filename,
     contentType,
   }: GetPresignedUrlBody): Promise<PresignedResponse> {
-    const res = await this.apiClient(`${SERVER_URL}/posts/pre-signed-url`, {
+    return this.fetch<PresignedResponse>("/posts/pre-signed-url", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         filename,
         contentType,
       }),
     });
-
-    if (!res.ok) {
-      throw new Error("Failed to get presigned URL");
-    }
-
-    const data: PresignedResponse = await res.json();
-    return data;
   }
 
   public async createNewPost({
@@ -121,12 +107,9 @@ export class PostService {
     description,
     tags,
     key,
-  }: CreateNewPostBody) {
-    const res = await this.apiClient(`${SERVER_URL}/posts/new`, {
+  }: CreateNewPostBody): Promise<unknown> {
+    return this.fetch<unknown>("/posts/new", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         title,
         description,
@@ -134,29 +117,21 @@ export class PostService {
         key,
       }),
     });
-
-    if (!res.ok) {
-      throw new Error("Failed to create new post");
-    }
-    return await res.json();
   }
 
-  public async updateLikeStatus({ liked, songId }: LikeRequestBody) {
-    const res = await this.apiClient(`${SERVER_URL}/posts/like`, {
+  public async updateLikeStatus({
+    liked,
+    songId,
+  }: LikeRequestBody): Promise<unknown> {
+    const data = await this.fetch<unknown>("/posts/like", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         liked,
         songId,
       }),
     });
-    if (!res.ok) {
-      console.error("Failed to update like status");
-    }
     this.updateLikeStatusState?.(songId, liked ? "like" : "dislike");
-    return await res.json();
+    return data;
   }
 }
 

@@ -71,6 +71,10 @@ function LikeButtonComponent({
     }
   };
 
+  const catchLikeError = useCallback((error: unknown): void => {
+    console.error("Failed to update like status", error);
+  }, []);
+
   /**
    * Update like status based on current like value and variant.
    *
@@ -85,12 +89,16 @@ function LikeButtonComponent({
     // `like` button and current `like` value is 0 (`dislike`)
     // update `like` value to 1 (`like`)
     if (variant === "like" && likedSharedValue.value === 0) {
-      service.updateLikeStatus({ liked: true, songId });
+      void service
+        .updateLikeStatus({ liked: true, songId })
+        .catch(catchLikeError);
       likedSharedValue.value = withSpring(1, undefined, voteCallback);
       // `like` dislike and current `like` value is 1 (`like`)
       // update `like` value to 0 (`dislike`)
     } else if (variant === "dislike" && likedSharedValue.value === 1) {
-      service.updateLikeStatus({ liked: false, songId });
+      void service
+        .updateLikeStatus({ liked: false, songId })
+        .catch(catchLikeError);
       likedSharedValue.value = withSpring(0, undefined, voteCallback);
       // `like` dislike and current `like` value is 0 (`dislike` OR `null`)
       // distinguish between a dislike and no like value at all with `voted`
@@ -100,12 +108,14 @@ function LikeButtonComponent({
       likedSharedValue.value === 0 &&
       !voted
     ) {
-      service.updateLikeStatus({ liked: false, songId });
+      void service
+        .updateLikeStatus({ liked: false, songId })
+        .catch(catchLikeError);
       //set like value to 1, then to 0 to simulate a dislike selection (fills the dislike button)
       likedSharedValue.value = 1;
       likedSharedValue.value = withSpring(0, undefined, voteCallback);
     }
-  }, [variant, service, voted, voteCallback]);
+  }, [variant, service, voted, voteCallback, songId]);
 
   return (
     <Pressable
