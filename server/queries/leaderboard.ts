@@ -1,3 +1,4 @@
+import { SortOrder } from "../generated/prisma/internal/prismaNamespace";
 import { prisma } from "../prisma";
 
 export const LEADERBOARD_LIMIT = 10;
@@ -26,20 +27,20 @@ export async function hydrateSongsByIds(songIds: number[]) {
     .filter((song): song is NonNullable<typeof song> => song !== undefined);
 }
 
-export async function fetchMostLikedFromDb() {
+async function songLeaderboardOrderBy(orderBy: SortOrder) {
   return prisma.song.findMany({
     ...songLeaderboardSelect,
-    orderBy: { likeCount: "desc" },
+    orderBy: { likeCount: orderBy },
     take: LEADERBOARD_LIMIT,
   });
 }
 
+export async function fetchMostLikedFromDb() {
+  return songLeaderboardOrderBy(SortOrder.desc);
+}
+
 export async function fetchLeastLikedFromDb() {
-  return prisma.song.findMany({
-    ...songLeaderboardSelect,
-    orderBy: { likeCount: "asc" },
-    take: LEADERBOARD_LIMIT,
-  });
+  return songLeaderboardOrderBy(SortOrder.asc);
 }
 
 /**

@@ -76,7 +76,3 @@ export async function deleteS3Object({
     throw new Error(e);
   }
 }
-
-export function generateS3Url(bucket: string, key: string) {
-  return `https://${bucket}.s3.${REGION}.amazonaws.com/${key}`;
-}
