@@ -17,6 +17,7 @@ import { ThemedText } from "./themed-text";
 const AUTO_DISMISS_MS = 3000;
 const SWIPE_UP_THRESHOLD = 40;
 const EXIT_DURATION_MS = 500;
+const SWIPE_UP_SPEED_THRESHOLD = 500; // pixels per second
 
 export function LikeNotificationBanner() {
   const { notifications, dismissNotification } = useWebSocketContext();
@@ -78,11 +79,16 @@ export function LikeNotificationBanner() {
       if (isExiting.value) {
         return;
       }
-      if (event.translationY >= -SWIPE_UP_THRESHOLD) {
-        translateY.value = withSpring(0);
+      // If the user has swiped up enough or is swiping up fast enough, dismiss the notification
+      if (
+        event.translationY <= -SWIPE_UP_THRESHOLD ||
+        event.velocityY >= -SWIPE_UP_SPEED_THRESHOLD
+      ) {
+        runOnJS(animateOutAndDismiss)();
         return;
       }
-      runOnJS(animateOutAndDismiss)();
+      // Otherwise, spring back to the original position
+      translateY.value = withSpring(0);
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
