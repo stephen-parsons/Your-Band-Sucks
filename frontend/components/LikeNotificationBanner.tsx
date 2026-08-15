@@ -19,6 +19,7 @@ const SWIPE_UP_THRESHOLD = 40;
 const EXIT_DURATION_MS = 500;
 const SWIPE_UP_SPEED_THRESHOLD = 500; // pixels per second
 
+//TODO: consider using a modal instead of a banner to take advantage of swiping to dismiss
 export function LikeNotificationBanner() {
   const { notifications, dismissNotification } = useWebSocketContext();
   const insets = useSafeAreaInsets();

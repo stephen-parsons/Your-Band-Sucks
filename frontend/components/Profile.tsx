@@ -29,10 +29,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import AudioProvider from "../audio/AudioManager";
 import { AudioPost } from "./AudioPost";
 import S3Image from "./S3Image";
@@ -91,7 +88,6 @@ const AccountProfile = ({
   const [uploading, setUploading] = useState(false);
   const [activeView, setActiveView] =
     useState<ProfileView>("Recently uploaded");
-  const insets = useSafeAreaInsets();
 
   const uploadImageFile = useCallback(async () => {
     if (uploading) {
@@ -244,13 +240,10 @@ const AccountProfile = ({
     }
   }, [activeView, recentlyLikedSongs, mostPopularSongs, posts]);
 
-  const openAudioPost = useCallback(
-    (post: Post): void => {
-      Vibration.vibrate(40);
-      setSelectedPost(post);
-    },
-    [insets.bottom, insets.left, insets.right, insets.top],
-  );
+  const openAudioPost = useCallback((post: Post): void => {
+    Vibration.vibrate(40);
+    setSelectedPost(post);
+  }, []);
 
   const closeAudioPost = useCallback((): void => {
     AudioProvider.clearActivePlayer();
@@ -376,7 +369,7 @@ const AccountProfile = ({
         onRequestClose={closeAudioPost}
       >
         <SafeAreaView
-          edges={{ top: "additive", bottom: "off" }}
+          edges={{ top: "additive", bottom: "additive" }}
           style={{ padding: 20, ...styles.audioModalContainer }}
         >
           <View style={styles.audioModalHeader}>
@@ -653,8 +646,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#333",
   },
   audioModalTitle: {
     flex: 1,
