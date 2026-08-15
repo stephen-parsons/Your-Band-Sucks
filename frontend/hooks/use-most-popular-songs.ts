@@ -1,4 +1,5 @@
-import { ProfileSong, UserService } from "@/service/user";
+import { Posts } from "@/service/posts";
+import { UserService } from "@/service/user";
 import { bumpAndSortPopular } from "@/util/likeCountList";
 import { LikeCountUpdatePayload } from "@/util/websocket";
 import { useCallback, useEffect, useState } from "react";
@@ -12,7 +13,7 @@ export default function useMostPopularSongs({
   enabled,
   service,
 }: UseMostPopularSongsArgs) {
-  const [songs, setSongs] = useState<ProfileSong[] | null>(null);
+  const [songs, setSongs] = useState<Posts | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 

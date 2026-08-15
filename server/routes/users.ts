@@ -12,8 +12,17 @@ import {
   findUserTagsByCognitoId,
   getMostPopularSongs,
   getRecentlyLikedSongs,
+  getRecentlyUploadedSongs,
   updateUserAvatar,
 } from "../queries/users";
+import {
+  userLikedSongsCacheKey,
+  userPopularSongsCacheKey,
+  userRecentUploadsCacheKey,
+} from "../redis/keys";
+import { getCacheItem, setCacheItem } from "../redis/redis";
+import { serializeRealtimeLikeCounts } from "../serializers/likeCount";
+import { SerializedPost, serializePosts } from "../serializers/posts";
 import { IdTokenClaimsPayload, verifyIdToken } from "../service/CognitoService";
 import {
   createPresignedUrlWithClientPUT,
@@ -26,7 +35,10 @@ const router = express.Router();
 
 router.use(cognitoAuthorizer);
 
-//return null if user is not found
+/**
+ * Fetch the current user's profile
+ * Return null if user is not found
+ */
 router.get("/current", async (req: AuthenticatedRequest, res) => {
   try {
     const { cognitoId } = req;
@@ -37,8 +49,20 @@ router.get("/current", async (req: AuthenticatedRequest, res) => {
       return res.status(200).json(null);
     }
 
+    const cacheKey = userRecentUploadsCacheKey(user.id);
+    let songs = await getCacheItem<SerializedPost[]>(cacheKey);
+    if (!songs) {
+      songs = await serializePosts(await getRecentlyUploadedSongs(user.id));
+      await setCacheItem(cacheKey, songs);
+    }
+    const songsWithRealtimeCounts = await serializeRealtimeLikeCounts(songs);
+
     const userTags = await findUserTagsByCognitoId(cognitoId!);
-    const result = { ...user, tags: mapTagResults(userTags) };
+    const result = {
+      ...user,
+      songs: songsWithRealtimeCounts,
+      tags: mapTagResults(userTags),
+    };
     res.status(200).json(result);
   } catch (e) {
     console.error(e);
@@ -48,31 +72,53 @@ router.get("/current", async (req: AuthenticatedRequest, res) => {
   }
 });
 
+/**
+ * Fetch the most popular songs uploaded by the current user
+ */
 router.get("/current/popular-songs", async (req: AuthenticatedRequest, res) => {
   try {
     const userId = req.userId!;
-    const songs = await getMostPopularSongs(userId);
-    res.status(200).json(songs);
+    const cacheKey = userPopularSongsCacheKey(userId);
+    let songs = await getCacheItem<SerializedPost[]>(cacheKey);
+    if (!songs) {
+      const rawSongs = await getMostPopularSongs(userId);
+      songs = await serializePosts(rawSongs);
+      await setCacheItem(cacheKey, songs);
+    }
+    const songsWithRealtimeCounts = await serializeRealtimeLikeCounts(songs);
+    res.status(200).json(songsWithRealtimeCounts);
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Failed to fetch most popular songs" });
   }
 });
 
+/**
+ * Fetch the recently liked songs for the current user
+ */
 router.get("/current/liked-songs", async (req: AuthenticatedRequest, res) => {
   try {
     const userId = req.userId!;
-    const songs = await getRecentlyLikedSongs(userId);
-    res.status(200).json(songs);
+    const cacheKey = userLikedSongsCacheKey(userId);
+    let songs = await getCacheItem<SerializedPost[]>(cacheKey);
+    if (!songs) {
+      const rawSongs = await getRecentlyLikedSongs(userId);
+      songs = await serializePosts(rawSongs);
+      await setCacheItem(cacheKey, songs);
+    }
+    const songsWithRealtimeCounts = await serializeRealtimeLikeCounts(songs);
+    res.status(200).json(songsWithRealtimeCounts);
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Failed to fetch recently liked songs" });
   }
 });
 
-//Create a new user using the sub claim as cognito id
-//This requires the id token to get name and email claims,
-//send it in the body of the request and verify separate from access token.
+/**
+ * Create a new user using the sub claim as cognito id
+ * This requires the id token to get name and email claims,
+ * send it in the body of the request and verify separate from access token.
+ */
 router.post("/new", async (req, res) => {
   try {
     const { idToken }: { idToken: string } = req.body;
@@ -92,7 +138,7 @@ router.post("/new", async (req, res) => {
   } catch (e: any) {
     console.error(e);
     if (e.code === "P2002") {
-      return res.status(500).json({ error: "User already exists" });
+      return res.status(409).json({ error: "User already exists" });
     }
     res.status(500).json({ error: "Failed to create new user" });
   }

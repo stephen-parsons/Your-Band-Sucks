@@ -11,24 +11,27 @@ import {
 } from "../queries/leaderboard";
 import {
   createSong,
+  FeedSongResult,
   findLikeByUserAndSong,
   getRecommendedFeed,
   updateSongLikeCount,
   upsertLikeDislike,
 } from "../queries/posts";
-import { userPostsCacheKey } from "../redis/keys";
+import {
+  userPopularSongsCacheKey,
+  userPostsCacheKey,
+  userRecentUploadsCacheKey,
+} from "../redis/keys";
 import {
   ensureLeaderboardSeeded,
   zAddSongScore,
   zBottomSongs,
   zTopSongs,
 } from "../redis/leaderboard";
-import { getCacheItem, setCacheItem } from "../redis/redis";
-import {
-  BUCKETS,
-  createPresignedUrlWithClientGET,
-  createPresignedUrlWithClientPUT,
-} from "../service/S3Service";
+import { delCacheItem, getCacheItem, setCacheItem } from "../redis/redis";
+import { serializeRealtimeLikeCounts } from "../serializers/likeCount";
+import { SerializedPost, serializePosts } from "../serializers/posts";
+import { BUCKETS, createPresignedUrlWithClientPUT } from "../service/S3Service";
 import { assertSafeFilename, UnsafeFilenameError } from "../util/filename";
 import {
   broadcastLikeCountUpdate,
@@ -42,34 +45,23 @@ const router = express.Router();
 router.use(cognitoAuthorizer);
 
 router.get("/", async (req: AuthenticatedRequest, res) => {
-  const cachedItems = await getCacheItem(userPostsCacheKey(req.userId!));
+  const cachedItems = await getCacheItem<SerializedPost<FeedSongResult>[]>(
+    userPostsCacheKey(req.userId!),
+  );
   if (cachedItems) {
-    return res.status(200).json(cachedItems);
+    const withRealtimeCounts = await serializeRealtimeLikeCounts(cachedItems);
+    return res.status(200).json(withRealtimeCounts);
   }
 
   console.warn("User posts cache not found, fetching posts...");
 
   try {
     const posts = await getRecommendedFeed(req.userId!, DEFAULT_POST_LIMIT);
-    const newPosts = await Promise.all(
-      posts.map(async (post) => {
-        //todo: get presignedUrls from cloudfront
-        //this is cheaper and faster than s3 presign urls
-        const url = await createPresignedUrlWithClientGET({
-          key: post.key,
-          bucket: BUCKETS.audioFiles,
-        });
-        const newPost = {
-          ...post,
-          url,
-          like: post.like?.toLocaleLowerCase(),
-        } as any;
-        delete newPost.key;
-        return newPost;
-      }),
-    );
-    await setCacheItem(userPostsCacheKey(req.userId!), newPosts);
-    res.status(200).json(newPosts);
+    const serializedPosts = await serializePosts<FeedSongResult>(posts);
+    await setCacheItem(userPostsCacheKey(req.userId!), serializedPosts);
+    const withRealtimeCounts =
+      await serializeRealtimeLikeCounts(serializedPosts);
+    res.status(200).json(withRealtimeCounts);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch posts" });
@@ -98,6 +90,11 @@ router.post("/new", async (req: AuthenticatedRequest, res) => {
       tags: rawTags,
     });
     await zAddSongScore(newSong.id, newSong.likeCount);
+    // Profile tables that include the uploader's songs must refresh.
+    await delCacheItem(userRecentUploadsCacheKey(userId));
+    await delCacheItem(userPopularSongsCacheKey(userId));
+    // TODO: also invalidate userPostsCacheKey / other feed consumers when feed
+    // freshness after upload matters. liked-songs is usually unchanged by own upload.
     res.status(200).json(newSong);
   } catch (e) {
     console.error(e);
@@ -136,6 +133,7 @@ router.post("/pre-signed-url", async (req: AuthenticatedRequest, res) => {
   }
 });
 
+//TODO: check user's feed cache for eligibility to update
 router.post("/like", async (req: AuthenticatedRequest, res) => {
   const userId = req.userId!;
   try {
@@ -152,7 +150,7 @@ router.post("/like", async (req: AuthenticatedRequest, res) => {
     if (typeof songId !== "number") {
       return res.status(400).json({ error: "songId must be a number" });
     }
-    const type = liked ? "LIKE" : ("DISLIKE" as const);
+    const type = liked ? "LIKE" : "DISLIKE";
     const likeResult = await findLikeByUserAndSong(userId, songId);
     if (likeResult?.type.toUpperCase() === type) {
       throw new Error(`Song already liked: ${liked} by user: ${userId}`);

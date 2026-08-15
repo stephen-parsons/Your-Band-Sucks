@@ -1,11 +1,6 @@
 import { AnimatedCount } from "@/components/ui/AnimtedCount";
-import { Tag as TagType } from "@/service/posts";
-import {
-  ProfileSong,
-  uploadToS3,
-  UserProfile,
-  UserService,
-} from "@/service/user";
+import { Post, Posts, Tag as TagType } from "@/service/posts";
+import { uploadToS3, UserProfile, UserService } from "@/service/user";
 import { assertSafeFilename, UnsafeFilenameError } from "@/util/filename";
 import {
   FontAwesome,
@@ -20,16 +15,26 @@ import {
   Image,
   Modal,
   Platform,
+  Pressable,
   StyleSheet,
   TouchableOpacity,
+  Vibration,
   View,
 } from "react-native";
 import Animated, {
   FadeInDown,
   FadeInRight,
   LinearTransition,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import AudioProvider from "../audio/AudioManager";
+import { AudioPost } from "./AudioPost";
 import S3Image from "./S3Image";
 import { ThemedText } from "./themed-text";
 import { Header } from "./ui/Header";
@@ -54,9 +59,9 @@ type ProfileView = (typeof PROFILE_VIEWS)[number];
 interface AccountProfileProps extends UserProfile {
   service: UserService;
   refreshData: () => void;
-  mostPopularSongs: ProfileSong[] | null;
+  mostPopularSongs: Posts | null;
   mostPopularLoading: boolean;
-  recentlyLikedSongs: ProfileSong[] | null;
+  recentlyLikedSongs: Posts | null;
   recentlyLikedLoading: boolean;
 }
 
@@ -81,10 +86,12 @@ const AccountProfile = ({
   recentlyLikedLoading,
 }: AccountProfileProps) => {
   const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [file, setFile] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [uploading, setUploading] = useState(false);
   const [activeView, setActiveView] =
     useState<ProfileView>("Recently uploaded");
+  const insets = useSafeAreaInsets();
 
   const uploadImageFile = useCallback(async () => {
     if (uploading) {
@@ -224,22 +231,31 @@ const AccountProfile = ({
     (activeView === "Favorite Songs" &&
       (recentlyLikedLoading || recentlyLikedSongs === null));
 
-  const tableSongs: ProfileSong[] = useMemo(() => {
+  const tableSongs: Posts = useMemo(() => {
     switch (activeView) {
       case "Favorite Songs":
         return recentlyLikedSongs ?? [];
       case "Most Popular":
         return mostPopularSongs ?? [];
       case "Recently uploaded":
-        return posts.map((post, index) => ({
-          id: post.id ?? index,
-          title: post.title,
-          likeCount: post.likeCount,
-        }));
+        return posts;
       default:
         return [];
     }
   }, [activeView, recentlyLikedSongs, mostPopularSongs, posts]);
+
+  const openAudioPost = useCallback(
+    (post: Post): void => {
+      Vibration.vibrate(40);
+      setSelectedPost(post);
+    },
+    [insets.bottom, insets.left, insets.right, insets.top],
+  );
+
+  const closeAudioPost = useCallback((): void => {
+    AudioProvider.clearActivePlayer();
+    setSelectedPost(null);
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -333,17 +349,12 @@ const AccountProfile = ({
       ) : (
         <Animated.FlatList
           data={tableSongs}
-          renderItem={({
-            index,
-            item,
-          }: {
-            index: number;
-            item: ProfileSong;
-          }) => (
+          renderItem={({ index, item }: { index: number; item: Post }) => (
             <ListItem
               index={index}
               item={<ThemedText style={styles.cell}>{item.title}</ThemedText>}
               count={item.likeCount}
+              onPress={() => openAudioPost(item)}
             />
           )}
           keyExtractor={(item, index) =>
@@ -356,6 +367,38 @@ const AccountProfile = ({
           }
         />
       )}
+
+      {/* Audio post modal */}
+      <Modal
+        visible={selectedPost !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={closeAudioPost}
+      >
+        <SafeAreaView
+          edges={{ top: "additive", bottom: "off" }}
+          style={{ padding: 20, ...styles.audioModalContainer }}
+        >
+          <View style={styles.audioModalHeader}>
+            <ThemedText style={styles.audioModalTitle} numberOfLines={1}>
+              {selectedPost?.title ?? ""}
+            </ThemedText>
+            <TouchableOpacity
+              onPress={closeAudioPost}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss audio post"
+            >
+              <MaterialCommunityIcons name="close" color="#EEE" size={28} />
+            </TouchableOpacity>
+          </View>
+          {selectedPost ? (
+            <View style={{ flex: 1 }}>
+              <AudioPost {...selectedPost} likeDisabled />
+            </View>
+          ) : null}
+        </SafeAreaView>
+      </Modal>
 
       {/* Upload Modal */}
       <Modal
@@ -415,16 +458,44 @@ function ListItem({
   item,
   count,
   index,
+  onPress,
 }: {
   index: number;
   count: number;
   item: ReactNode;
+  onPress?: () => void;
 }) {
-  return (
-    <View key={index} style={styles.row}>
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: 0.7 + scale.value * 0.3,
+  }));
+
+  const content = (
+    <Animated.View style={[styles.row, onPress ? animatedStyle : null]}>
       {item}
       <AnimatedCount value={count || 0} />
-    </View>
+    </Animated.View>
+  );
+
+  if (!onPress) {
+    return <View key={index}>{content}</View>;
+  }
+
+  return (
+    <Pressable
+      key={index}
+      onPress={onPress}
+      onPressIn={() => {
+        scale.value = withSpring(0.97, { damping: 18, stiffness: 320 });
+      }}
+      onPressOut={() => {
+        scale.value = withSpring(1, { damping: 14, stiffness: 220 });
+      }}
+      android_ripple={{ color: "rgba(255,255,255,0.08)" }}
+    >
+      {content}
+    </Pressable>
   );
 }
 
@@ -571,6 +642,25 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 0,
     bottom: 0,
+  },
+  audioModalContainer: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  audioModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#333",
+  },
+  audioModalTitle: {
+    flex: 1,
+    marginRight: 12,
+    fontSize: 16,
+    fontWeight: "700",
   },
 });
 

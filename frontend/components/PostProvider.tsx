@@ -38,11 +38,11 @@ export function PostContextProvider({ children }: PropsWithChildren) {
   const updateLikeStatus = useCallback(
     (id: number, status: Like) => {
       if (!posts) return;
-      const newPosts = [...posts];
-      const newPost = newPosts.find((post) => post.id === id);
-      if (!newPost) return;
-      newPost.like = status;
-      setPosts(newPosts);
+      const currentPosts = [...posts];
+      const targetPost = currentPosts.find((post) => post.id === id);
+      if (!targetPost) return;
+      targetPost.like = status;
+      setPosts(currentPosts);
     },
     [posts],
   );

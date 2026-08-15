@@ -8,6 +8,65 @@ function isRedisReady(): boolean {
 }
 
 /**
+ * Returns the real-time likeCount for a song from the leaderboard ZSET.
+ * Soft-fails to null if Redis is down or the member is missing.
+ */
+export async function zScoreSongLikeCount(
+  songId: number,
+): Promise<number | null> {
+  try {
+    if (!isRedisReady() || !client) {
+      console.warn(
+        `Redis not ready. Skipping ZSCORE for song: ${chalk.cyan(songId)}`,
+      );
+      return null;
+    }
+    const score = await client.zScore(LEADERBOARD_SONGS_KEY, String(songId));
+    return score === null || score === undefined ? null : score;
+  } catch (error) {
+    console.error(`Failed to ZSCORE song ${songId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Batch-reads real-time likeCounts for many songs via a Redis pipeline.
+ * Missing members / Redis failures omit that id from the map.
+ */
+export async function zScoreSongLikeCounts(
+  songIds: number[],
+): Promise<Map<number, number>> {
+  const scores = new Map<number, number>();
+  if (songIds.length === 0) {
+    return scores;
+  }
+
+  try {
+    if (!isRedisReady() || !client) {
+      console.warn("Redis not ready. Skipping batch ZSCORE.");
+      return scores;
+    }
+
+    const results = await Promise.all(
+      songIds.map((songId) =>
+        client!.zScore(LEADERBOARD_SONGS_KEY, String(songId)),
+      ),
+    );
+
+    songIds.forEach((songId, index) => {
+      const score = results[index];
+      if (score !== null && score !== undefined) {
+        scores.set(songId, score);
+      }
+    });
+    return scores;
+  } catch (error) {
+    console.error("Failed to batch ZSCORE songs:", error);
+    return scores;
+  }
+}
+
+/**
  * Sets absolute likeCount score for a song in the leaderboard ZSET.
  */
 export async function zAddSongScore(

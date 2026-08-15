@@ -165,3 +165,23 @@ export async function getCacheItem<T>(key: string): Promise<T | null> {
     return null; // Fallback to DB
   }
 }
+
+/**
+ * Safely deletes a cache key. If Redis is down, fails softly.
+ */
+export async function delCacheItem(key: string): Promise<boolean> {
+  try {
+    if (!client || !client.isOpen || !client.isReady) {
+      console.warn(
+        `Redis not ready. Skipping CACHE_DEL for key: ${chalk.cyan(key)}`,
+      );
+      return false;
+    }
+
+    await client.del(key);
+    return true;
+  } catch (error) {
+    console.error(`Failed to delete cache item for ${key}:`, error);
+    return false;
+  }
+}

@@ -3,20 +3,20 @@ import { Post } from "@/service/posts";
 import { Link, useIsFocused } from "@react-navigation/native";
 import React, { memo, useCallback, useEffect, useState } from "react";
 import {
-  Dimensions,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Dimensions,
+    Image,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
 } from "react-native-reanimated";
 import AudioProvider, {
-  ON_POSITION_CHANGED_INTERVAL,
+    ON_POSITION_CHANGED_INTERVAL,
 } from "../audio/AudioManager";
 import AudioVisualizer from "./AudioVisualizer";
 import S3Image from "./S3Image";
@@ -35,7 +35,11 @@ function withBoundary(val: number, end: number, start: number = 0) {
   return val > end ? end : val < start ? start : val;
 }
 
-const AudioPostComponent: React.FC<Post> = ({
+interface AudioPostProps extends Post {
+  likeDisabled?: boolean;
+}
+
+const AudioPostComponent: React.FC<AudioPostProps> = ({
   url,
   title,
   description,
@@ -44,6 +48,7 @@ const AudioPostComponent: React.FC<Post> = ({
   user: { name, avatar },
   id,
   like,
+  likeDisabled = false,
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
@@ -267,7 +272,7 @@ const AudioPostComponent: React.FC<Post> = ({
           </ThemedText>
         </View>
       </View>
-      <LikeBar songId={id} like={like} />
+      {!likeDisabled && <LikeBar songId={id} like={like} />}
 
       <ThemedText style={styles.description}>{description}</ThemedText>
       <ThemedText style={styles.userName}>Posted by: {name}</ThemedText>

@@ -119,6 +119,7 @@ const Table: React.FC<TableProps> = ({ title, data }) => {
       <Podium data={rows} />
 
       <View style={styles.table}>
+        {/* TODO: open fullscreen AudioPost modal on row press (same pattern as Profile tables) */}
         {rows.map((item, index) => {
           const rank = index + 1;
 

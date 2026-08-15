@@ -14,12 +14,6 @@ export interface User {
   avatar?: string;
 }
 
-export interface ProfileSong {
-  id: number;
-  title: string;
-  likeCount: number;
-}
-
 export interface UserProfile extends User {
   songs: Posts;
   tags: Tag[];
@@ -39,12 +33,12 @@ export class UserService extends ApiService {
     return this.fetch<UserProfile>("/users/current");
   }
 
-  public async getMostPopularSongs(): Promise<ProfileSong[]> {
-    return this.fetch<ProfileSong[]>("/users/current/popular-songs");
+  public async getMostPopularSongs(): Promise<Posts> {
+    return this.fetch<Posts>("/users/current/popular-songs");
   }
 
-  public async getRecentlyLikedSongs(): Promise<ProfileSong[]> {
-    return this.fetch<ProfileSong[]>("/users/current/liked-songs");
+  public async getRecentlyLikedSongs(): Promise<Posts> {
+    return this.fetch<Posts>("/users/current/liked-songs");
   }
 
   public async createNewUser(idToken: string): Promise<User> {
