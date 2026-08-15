@@ -1,39 +1,47 @@
-import Autocomplete from "@/components/AutoComplete";
 import { usePostContext } from "@/components/PostProvider";
-import { ThemedText } from "@/components/themed-text";
 import { Header } from "@/components/ui/Header";
-import Tag from "@/components/ui/Tag";
+import {
+  isAcceptedAudioFile,
+  MAX_FILE_SIZE_BYTES,
+  MaxFileSizeError,
+  UnsupportedAudioFormatError,
+  UploadOutcome,
+  UploadStep,
+} from "@/components/upload/constants";
+import { StepConfirm } from "@/components/upload/StepConfirm";
+import { StepDetails } from "@/components/upload/StepDetails";
+import { StepPagination } from "@/components/upload/StepPagination";
+import { StepPickFile } from "@/components/upload/StepPickFile";
+import { StepTags } from "@/components/upload/StepTags";
+import { UploadResultModal } from "@/components/upload/UploadResultModal";
+import { UploadStepShell } from "@/components/upload/UploadStepShell";
 import useTags from "@/hooks/use-tags";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { uploadToS3 } from "@/service/posts";
 import { assertSafeFilename, UnsafeFilenameError } from "@/util/filename";
 import * as DocumentPicker from "expo-document-picker";
-import React, { Dispatch, SetStateAction, useCallback, useState } from "react";
-import {
-    Alert,
-    Platform,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
+import { Platform, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-//in megabytes
-const MAX_FILE_SIZE = 50;
-
-//in bytes
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE * 1024 * 1024;
-
-class MaxFileSizeError extends Error {
-  constructor() {
-    super();
-    this.message = `Max file size is ${MAX_FILE_SIZE} Mb`;
-  }
-}
+const ACCEPTED_PICKER_TYPES = [
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/mp4",
+  "audio/m4a",
+  "audio/x-m4a",
+  "audio/aac",
+  "audio/flac",
+  "audio/ogg",
+  "audio/*",
+] as const;
 
 /**
- * Upload component
+ * Multi-step song upload flow.
  */
 const S3UploadForm: React.FC = () => {
   const textInputBackgroundColor = useThemeColor(
@@ -41,228 +49,253 @@ const S3UploadForm: React.FC = () => {
     "textInputBackgroundColor",
   );
   const { service } = usePostContext();
+  const router = useRouter();
+  const { tags: tagList } = useTags();
+
+  const [step, setStep] = useState<UploadStep>(1);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [file, setFile] = useState<DocumentPicker.DocumentPickerAsset | null>(
     null,
   );
+  const [picking, setPicking] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [formErrors, setFormErrors] = useState<Map<string, string>>(new Map());
+  const [outcome, setOutcome] = useState<UploadOutcome>("idle");
+  const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const [createdPostId, setCreatedPostId] = useState<number | null>(null);
 
-  //list of all tags from the db for auto-completing
-  const { tags: tagList } = useTags();
+  const goTo = useCallback((next: UploadStep) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setStep(next);
+  }, []);
 
-  const setFormInput = useCallback(
-    (input: string | string[], field: string) => {
-      if (input.length === 0) {
-        setFormErrors((curr) => new Map(curr.set(field, "empty")));
-      } else setFormErrors((curr) => new Map(curr.set(field, "")));
-    },
-    [title, description, tags],
-  );
+  const resetFlow = useCallback(() => {
+    setStep(1);
+    setTitle("");
+    setDescription("");
+    setTags([]);
+    setFile(null);
+    setPicking(false);
+    setUploading(false);
+    setOutcome("idle");
+    setErrorMessage(undefined);
+    setCreatedPostId(null);
+  }, []);
 
   const pickFile = useCallback(async () => {
     try {
+      setPicking(true);
       const result = await DocumentPicker.getDocumentAsync({
         multiple: false,
+        type: [...ACCEPTED_PICKER_TYPES],
       });
 
-      const file = result.assets && result.assets[0];
-
-      if (file?.size ?? 0 > MAX_FILE_SIZE_BYTES) throw new MaxFileSizeError();
-
-      if (file?.name) {
-        assertSafeFilename(file.name);
+      if (result.canceled) {
+        return;
       }
 
-      if (!result.canceled) {
-        setFile(file);
-      } else {
-        console.warn("Document selection cancelled");
+      const selected = result.assets?.[0];
+      if (!selected) {
+        return;
       }
+
+      if ((selected.size ?? 0) > MAX_FILE_SIZE_BYTES) {
+        throw new MaxFileSizeError();
+      }
+
+      if (
+        !isAcceptedAudioFile({
+          filename: selected.name,
+          mimeType: selected.mimeType,
+        })
+      ) {
+        throw new UnsupportedAudioFormatError();
+      }
+
+      assertSafeFilename(selected.name);
+
+      setFile(selected);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      goTo(2);
     } catch (err) {
       console.error(err);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       if (
         err instanceof MaxFileSizeError ||
-        err instanceof UnsafeFilenameError
+        err instanceof UnsafeFilenameError ||
+        err instanceof UnsupportedAudioFormatError
       ) {
-        Alert.alert("Error:", err.message);
-      } else Alert.alert("Error picking file");
+        setErrorMessage(err.message);
+        setOutcome("error");
+      } else {
+        setErrorMessage("Error picking file");
+        setOutcome("error");
+      }
+    } finally {
+      setPicking(false);
     }
-  }, []);
+  }, [goTo]);
 
   const uploadFile = useCallback(async () => {
     if (uploading) {
-      console.info("Already uploading...");
       return;
     }
 
-    if (!file || !title || !description || tags.length <= 0) {
-      setFormInput(title, "title");
-      setFormInput(description, "description");
-      setFormInput(tags, "tags");
-      console.error("Please select a file and fill out the form.");
+    if (!file || !title.trim() || !description.trim() || tags.length <= 0) {
+      setErrorMessage("Please complete all fields before uploading.");
+      setOutcome("error");
       return;
     }
 
-    if (file.size ?? 0 > MAX_FILE_SIZE_BYTES) throw new MaxFileSizeError();
+    if ((file.size ?? 0) > MAX_FILE_SIZE_BYTES) {
+      setErrorMessage(new MaxFileSizeError().message);
+      setOutcome("error");
+      return;
+    }
 
     try {
       setUploading(true);
-
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       assertSafeFilename(file.name);
 
-      //Generate s3 object key based on user id and filename
       const { objectKey, url: presignedUrl } = await service.getPresignedUrl({
         filename: file.name,
         contentType: file.mimeType,
       });
 
-      let blob;
-
+      let blob: Blob | undefined;
       if (Platform.OS === "web") {
-        blob = file.file;
+        blob = file.file ?? undefined;
       } else {
         const response = await fetch(file.uri);
         blob = await response.blob();
       }
 
-      if (!blob) throw new Error("Error getting blob to upload");
+      if (!blob) {
+        throw new Error("Error getting blob to upload");
+      }
 
-      //Uploads file to s3 using pres-signed url
       const uploadResult = await uploadToS3({
         presignedUrl,
         mimeType: file.mimeType,
         blob,
       });
-      if (uploadResult.ok) {
-        await service.createNewPost({
-          title,
-          description,
-          key: objectKey,
-          tags: [],
-        });
+
+      if (!uploadResult.ok) {
+        throw new Error("Failed to upload file to storage");
       }
 
-      setTitle("");
-      setDescription("");
-      setTags([]);
-      setFile(null);
+      const created = await service.createNewPost({
+        title: title.trim(),
+        description: description.trim(),
+        key: objectKey,
+        tags,
+      });
 
-      console.info("Upload successful!");
-      Alert.alert("Upload successful");
+      setCreatedPostId(created.id);
+      setOutcome("success");
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
       console.error(err);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       if (
         err instanceof MaxFileSizeError ||
         err instanceof UnsafeFilenameError
       ) {
-        Alert.alert("Error:", err.message);
-      } else Alert.alert("Upload failed");
+        setErrorMessage(err.message);
+      } else if (err instanceof Error && err.message) {
+        setErrorMessage(err.message);
+      } else {
+        setErrorMessage("Upload failed");
+      }
+      setOutcome("error");
     } finally {
       setUploading(false);
     }
-  }, [file, service, title, description, tags]);
+  }, [file, service, title, description, tags, uploading]);
+
+  const onCloseSuccess = useCallback(() => {
+    const songId = createdPostId;
+    resetFlow();
+    if (songId != null) {
+      router.push({
+        pathname: "/profile",
+        params: { highlightSongId: String(songId) },
+      });
+    } else {
+      router.push("/profile");
+    }
+  }, [createdPostId, resetFlow, router]);
+
+  const onRestart = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    resetFlow();
+  }, [resetFlow]);
+
+  const onDismissError = useCallback(() => {
+    setOutcome("idle");
+    setErrorMessage(undefined);
+  }, []);
+
+  const addTag = useCallback((item: string) => {
+    setTags((curr) => {
+      if (curr.includes(item)) {
+        return curr;
+      }
+      return [...curr, item];
+    });
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
       <Header text={"Show us what you got"} />
-      <ThemedText style={styles.label}>Title</ThemedText>
-      <TextInput
-        style={[styles.input, { backgroundColor: textInputBackgroundColor }]}
-        value={title}
-        onChangeText={(text) => {
-          setFormInput(text, "title");
-          setTitle(text);
-        }}
+      <UploadStepShell step={step}>
+        {step === 1 && <StepPickFile picking={picking} onPickFile={pickFile} />}
+        {step === 2 && file && (
+          <StepDetails
+            fileName={file.name}
+            title={title}
+            description={description}
+            textInputBackgroundColor={textInputBackgroundColor}
+            onTitleChange={setTitle}
+            onDescriptionChange={setDescription}
+            onContinue={() => goTo(3)}
+          />
+        )}
+        {step === 3 && (
+          <StepTags
+            tags={tags}
+            tagOptions={tagList?.map((item) => item.description) || []}
+            setTags={setTags}
+            onAddTag={addTag}
+            onContinue={() => goTo(4)}
+          />
+        )}
+        {step === 4 && file && (
+          <StepConfirm
+            title={title}
+            description={description}
+            tags={tags}
+            fileName={file.name}
+            fileSize={file.size}
+            uploading={uploading}
+            onEditForm={() => goTo(2)}
+            onEditTags={() => goTo(3)}
+            onEditFile={() => goTo(1)}
+            onUpload={uploadFile}
+          />
+        )}
+      </UploadStepShell>
+      <StepPagination step={step} />
+      <UploadResultModal
+        outcome={outcome}
+        errorMessage={errorMessage}
+        onCloseSuccess={onCloseSuccess}
+        onRestart={onRestart}
+        onDismissError={onDismissError}
       />
-      {formErrors.get("title") === "empty" && (
-        <ThemedText style={{ color: "rgb(208 70 70)", fontStyle: "italic" }}>
-          What's your song called?
-        </ThemedText>
-      )}
-      <ThemedText style={styles.label}>Description</ThemedText>
-      <TextInput
-        style={[styles.input, { backgroundColor: textInputBackgroundColor }]}
-        value={description}
-        onChangeText={(text) => {
-          setFormInput(text, "description");
-          setDescription(text);
-        }}
-      />
-      {formErrors.get("description") === "empty" && (
-        <ThemedText style={{ color: "rgb(208 70 70)", fontStyle: "italic" }}>
-          Tell us about your new tune
-        </ThemedText>
-      )}
-      <ThemedText style={styles.label}>Tags</ThemedText>
-      <Autocomplete
-        placeholder={"Add tags to share your song!"}
-        options={tagList?.map((item) => item.description) || []}
-        onSelect={(item) =>
-          setTags((curr) => {
-            if (!item) return curr;
-            if (curr.find((tag) => item === tag)) return curr;
-            curr.push(item);
-            return [...curr];
-          })
-        }
-      />
-      {formErrors.get("tags") === "empty" && (
-        <ThemedText style={{ color: "rgb(208 70 70)", fontStyle: "italic" }}>
-          Add at least one tag
-        </ThemedText>
-      )}
-      <Tags setTags={setTags} tags={tags} />
-      <View style={styles.fileRow}>
-        <TouchableOpacity
-          onPress={pickFile}
-          style={[styles.button, styles.paddedButton]}
-        >
-          <ThemedText style={styles.buttonText}>Select File</ThemedText>
-        </TouchableOpacity>
-        <ThemedText style={styles.fileName}>
-          {file ? file.name : "No file selected"}
-        </ThemedText>
-      </View>
-      <TouchableOpacity
-        onPress={uploadFile}
-        disabled={uploading}
-        style={styles.button}
-      >
-        <ThemedText style={styles.buttonText}>
-          {uploading ? "Uploading..." : "Upload"}
-        </ThemedText>
-      </TouchableOpacity>
     </SafeAreaView>
-  );
-};
-
-const Tags = ({
-  tags,
-  setTags,
-}: {
-  tags: string[];
-  setTags: Dispatch<SetStateAction<string[]>>;
-}) => {
-  return (
-    <View style={styles.tagConatiner}>
-      {tags.map((tag, idx) => (
-        <Tag
-          showCloseIcon
-          tag={tag}
-          idx={idx}
-          key={idx}
-          onPress={() => {
-            setTags((curr) => {
-              curr.splice(idx, 1);
-              return [...curr];
-            });
-          }}
-        />
-      ))}
-    </View>
   );
 };
 
@@ -270,69 +303,8 @@ export default S3UploadForm;
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     padding: 20,
     backgroundColor: "#000",
-  },
-  label: {
-    color: "#fff",
-    fontWeight: "600",
-    marginTop: 10,
-  },
-  input: {
-    padding: 8,
-    marginTop: 5,
-    borderRadius: 25,
-  },
-  fileRow: {
-    flexWrap: "wrap",
-    gap: 4,
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 15,
-  },
-  fileName: {
-    marginLeft: 10,
-    flexShrink: 1,
-  },
-  button: {
-    backgroundColor: "#1DB954",
-    paddingVertical: 10,
-    borderRadius: 25,
-    alignItems: "center",
-  },
-  buttonText: {
-    fontWeight: "bold",
-  },
-  paddedButton: {
-    paddingLeft: 20,
-    paddingRight: 20,
-  },
-  tagConatiner: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10,
-  },
-  hashtag: {
-    marginTop: 2,
-  },
-  tag: {
-    display: "flex",
-    flexDirection: "row",
-    backgroundColor: "#e0e0e0", // Light gray background for the tag
-    borderRadius: 15, // Rounded corners
-    paddingVertical: 5, // Vertical padding
-    paddingHorizontal: 10, // Horizontal padding
-    margin: 5, // Spacing around the tag
-    alignSelf: "flex-start", // Ensures the view only takes up the necessary width
-    alignItems: "center",
-  },
-  tagText: {
-    color: "#333333", // Darker text color
-    fontWeight: "600", // Semi-bold font weight
-    fontSize: 14, // Font size
-  },
-  xIcon: {
-    marginLeft: 4,
-    marginTop: 1,
   },
 });

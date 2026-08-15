@@ -3,6 +3,7 @@ import Fuse from "fuse.js";
 import React, { useMemo, useState } from "react";
 import {
   FlatList,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -11,14 +12,18 @@ import {
 } from "react-native";
 import Animated, {
   Extrapolation,
+  FadeIn,
+  FadeOut,
   interpolate,
+  LinearTransition,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 import { useDebounce } from "use-debounce";
 
-const MAX_HEIGHT = 240;
+const MAX_HEIGHT = 280;
+const ROW_HEIGHT = 44;
 
 type Props = {
   options: string[];
@@ -52,18 +57,21 @@ export default function Autocomplete({
   }, [options]);
 
   const results = useMemo(() => {
-    if (!debouncedQuery) return options.slice(0, maxResults);
+    if (!debouncedQuery) {
+      return options.slice(0, maxResults);
+    }
 
-    const results = fuse
+    const matched = fuse
       .search(debouncedQuery)
       .slice(0, maxResults)
       .map((r) => r.item);
-    if (results.length === 0) return ["Add new tag"];
-    return results;
-  }, [debouncedQuery, fuse]);
+    if (matched.length === 0) {
+      return ["Add new tag"];
+    }
+    return matched;
+  }, [debouncedQuery, fuse, maxResults, options]);
 
   function openDropdown() {
-    setQuery("");
     setOpen(true);
     progress.value = withTiming(1, { duration: 180 });
   }
@@ -74,7 +82,7 @@ export default function Autocomplete({
   }
 
   function handleSelect(value: string) {
-    setQuery(value);
+    setQuery("");
     closeDropdown();
     onSelect?.(value);
   }
@@ -83,7 +91,7 @@ export default function Autocomplete({
     closeDropdown();
   }
 
-  const targetHeight = Math.min(results.length * 44, MAX_HEIGHT);
+  const targetHeight = Math.min(results.length * ROW_HEIGHT, MAX_HEIGHT);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -98,12 +106,14 @@ export default function Autocomplete({
   });
 
   function highlight(text: string) {
-    if (!query) return <Text>{text}</Text>;
+    if (!query) {
+      return <Text style={styles.itemText}>{text}</Text>;
+    }
 
     const parts = text.split(new RegExp(`(${query})`, "gi"));
 
     return (
-      <Text>
+      <Text style={styles.itemText}>
         {parts.map((part, i) =>
           part.toLowerCase() === query.toLowerCase() ? (
             <Text key={i} style={styles.highlight}>
@@ -120,6 +130,7 @@ export default function Autocomplete({
   return (
     <View style={styles.container}>
       <TextInput
+        autoCapitalize="none"
         value={query}
         placeholder={placeholder}
         placeholderTextColor={"gray"}
@@ -128,29 +139,50 @@ export default function Autocomplete({
         onBlur={handleBlur}
         onChangeText={(text) => {
           setQuery(text);
-          if (!open) openDropdown();
+          if (!open) {
+            openDropdown();
+          }
         }}
       />
 
       {open && (
-        <Animated.View style={[styles.dropdown, animatedStyle]}>
+        <Animated.View
+          entering={FadeIn.duration(160)}
+          exiting={FadeOut.duration(120)}
+          layout={LinearTransition.duration(180)}
+          style={[styles.dropdown, animatedStyle]}
+        >
+          <View style={styles.dropdownShadeTop} pointerEvents="none" />
           <FlatList
             data={results}
             keyExtractor={(item) => item}
             keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+            style={styles.list}
             renderItem={({ item, index }) => {
+              const isAddNew = item === "Add new tag";
               return (
                 <Pressable
-                  style={[
+                  style={({ pressed }) => [
                     styles.item,
-                    { backgroundColor: textInputBackgroundColor },
+                    index % 2 === 1 && styles.itemAlt,
+                    pressed && styles.itemPressed,
                   ]}
                   onPress={() => {
-                    if (item === "Add new tag") return handleSelect(query);
+                    if (isAddNew) {
+                      handleSelect(query.trim());
+                      return;
+                    }
                     handleSelect(results[index]);
                   }}
                 >
-                  {highlight(item)}
+                  {isAddNew ? (
+                    <Text style={styles.addNewText}>
+                      {`Add "${query.trim()}"`}
+                    </Text>
+                  ) : (
+                    highlight(item)
+                  )}
                 </Pressable>
               );
             }}
@@ -163,36 +195,91 @@ export default function Autocomplete({
 
 const styles = StyleSheet.create({
   container: {
-    zIndex: 5,
+    zIndex: 20,
     position: "relative",
     width: "100%",
   },
 
   input: {
     backgroundColor: "white",
-    padding: 8,
+    padding: 12,
     marginTop: 5,
     borderRadius: 25,
   },
 
   dropdown: {
-    position: "absolute",
+    // In-flow so a long results list pushes Continue down instead of covering it.
     width: "100%",
-    top: 32.5,
+    marginTop: 8,
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    marginTop: 6,
-    backgroundColor: "white",
+    borderColor: "rgba(29,185,84,0.35)",
+    borderRadius: 14,
+    backgroundColor: "#1a1a1a",
     overflow: "hidden",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#1DB954",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.28,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 10,
+      },
+      default: {
+        shadowColor: "#1DB954",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.22,
+        shadowRadius: 14,
+      },
+    }),
+  },
+
+  list: {
+    flexGrow: 0,
+  },
+
+  dropdownShadeTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    zIndex: 2,
+    backgroundColor: "rgba(255,255,255,0.18)",
   },
 
   item: {
     paddingHorizontal: 14,
     paddingVertical: 12,
+    minHeight: ROW_HEIGHT,
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  },
+
+  itemAlt: {
+    backgroundColor: "rgba(29,185,84,0.08)",
+  },
+
+  itemPressed: {
+    backgroundColor: "rgba(29,185,84,0.22)",
+  },
+
+  itemText: {
+    color: "#f2f2f2",
+    fontSize: 15,
+  },
+
+  addNewText: {
+    color: "#1DB954",
+    fontWeight: "700",
+    fontSize: 15,
   },
 
   highlight: {
     fontWeight: "700",
+    color: "#1DB954",
   },
 });

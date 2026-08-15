@@ -3,31 +3,42 @@ import { Post, Posts, Tag as TagType } from "@/service/posts";
 import { uploadToS3, UserProfile, UserService } from "@/service/user";
 import { assertSafeFilename, UnsafeFilenameError } from "@/util/filename";
 import {
-  FontAwesome,
-  Ionicons,
-  MaterialCommunityIcons,
+    FontAwesome,
+    Ionicons,
+    MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import React, { ReactNode, useCallback, useMemo, useState } from "react";
+import React, {
+    ReactNode,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  TouchableOpacity,
-  Vibration,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    TouchableOpacity,
+    Vibration,
+    View,
 } from "react-native";
 import Animated, {
-  FadeInDown,
-  FadeInRight,
-  LinearTransition,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
+    cancelAnimation,
+    FadeInDown,
+    FadeInRight,
+    interpolateColor,
+    LinearTransition,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AudioProvider from "../audio/AudioManager";
@@ -60,6 +71,8 @@ interface AccountProfileProps extends UserProfile {
   mostPopularLoading: boolean;
   recentlyLikedSongs: Posts | null;
   recentlyLikedLoading: boolean;
+  highlightSongId?: number;
+  onHighlightConsumed?: () => void;
 }
 
 class MaxFileSizeError extends Error {
@@ -81,6 +94,8 @@ const AccountProfile = ({
   mostPopularLoading,
   recentlyLikedSongs,
   recentlyLikedLoading,
+  highlightSongId,
+  onHighlightConsumed,
 }: AccountProfileProps) => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -88,6 +103,13 @@ const AccountProfile = ({
   const [uploading, setUploading] = useState(false);
   const [activeView, setActiveView] =
     useState<ProfileView>("Recently uploaded");
+
+  useEffect(() => {
+    if (highlightSongId === undefined) {
+      return;
+    }
+    setActiveView("Recently uploaded");
+  }, [highlightSongId]);
 
   const uploadImageFile = useCallback(async () => {
     if (uploading) {
@@ -347,6 +369,10 @@ const AccountProfile = ({
               index={index}
               item={<ThemedText style={styles.cell}>{item.title}</ThemedText>}
               count={item.likeCount}
+              highlighted={
+                highlightSongId !== undefined && item.id === highlightSongId
+              }
+              onHighlightComplete={onHighlightConsumed}
               onPress={() => openAudioPost(item)}
             />
           )}
@@ -452,20 +478,67 @@ function ListItem({
   count,
   index,
   onPress,
+  highlighted = false,
+  onHighlightComplete,
 }: {
   index: number;
   count: number;
   item: ReactNode;
   onPress?: () => void;
+  highlighted?: boolean;
+  onHighlightComplete?: () => void;
 }) {
   const scale = useSharedValue(1);
+  const highlight = useSharedValue(highlighted ? 1 : 0);
+
+  useEffect(() => {
+    if (!highlighted) {
+      highlight.value = withTiming(0, { duration: 200 });
+      return;
+    }
+
+    highlight.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 450 }),
+        withTiming(0.35, { duration: 450 }),
+      ),
+      4,
+      false,
+    );
+
+    const timeout = setTimeout(() => {
+      cancelAnimation(highlight);
+      highlight.value = withTiming(0, { duration: 400 });
+      onHighlightComplete?.();
+    }, 2800);
+
+    return () => {
+      clearTimeout(timeout);
+      cancelAnimation(highlight);
+    };
+  }, [highlighted, highlight, onHighlightComplete]);
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
     opacity: 0.7 + scale.value * 0.3,
+    backgroundColor: interpolateColor(
+      highlight.value,
+      [0, 1],
+      ["rgba(29,185,84,0)", "rgba(29,185,84,0.28)"],
+    ),
+    borderColor: interpolateColor(
+      highlight.value,
+      [0, 1],
+      ["rgba(29,185,84,0)", "rgba(29,185,84,0.85)"],
+    ),
+    borderWidth: highlight.value > 0.05 ? 1 : 0,
+    borderRadius: 10,
   }));
 
   const content = (
-    <Animated.View style={[styles.row, onPress ? animatedStyle : null]}>
+    <Animated.View
+      style={[styles.row, onPress || highlighted ? animatedStyle : null]}
+    >
       {item}
       <AnimatedCount value={count || 0} />
     </Animated.View>

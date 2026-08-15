@@ -6,7 +6,8 @@ import useRecentlyLikedSongs from "@/hooks/use-recently-liked-songs";
 import { UserProfile, UserService } from "@/service/user";
 import { bumpLikeCountIfPresent } from "@/util/likeCountList";
 import { LikeCountUpdatePayload } from "@/util/websocket";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useAuthContext } from "../auth";
 
@@ -16,6 +17,21 @@ export default function Profile() {
   const { isLoading, setIsLoading } = useLoadingContext();
   const [error, setError] = useState<Error | null>(null);
   const { subscribeLikeCountUpdate } = useWebSocketContext();
+  const router = useRouter();
+  const { highlightSongId: highlightSongIdParam } = useLocalSearchParams<{
+    highlightSongId?: string | string[];
+  }>();
+  const highlightSongIdRaw = Array.isArray(highlightSongIdParam)
+    ? highlightSongIdParam[0]
+    : highlightSongIdParam;
+  const highlightSongId = highlightSongIdRaw
+    ? Number.parseInt(highlightSongIdRaw, 10)
+    : undefined;
+  const highlightSongIdValid =
+    highlightSongId !== undefined && !Number.isNaN(highlightSongId)
+      ? highlightSongId
+      : undefined;
+  const refreshedForHighlightRef = useRef<number | null>(null);
 
   const service = useMemo(() => new UserService(apiClient), [apiClient]);
 
@@ -25,6 +41,22 @@ export default function Profile() {
   const refreshData = useCallback(() => {
     setUser(null);
   }, []);
+
+  useEffect(() => {
+    if (highlightSongIdValid === undefined) {
+      refreshedForHighlightRef.current = null;
+      return;
+    }
+    if (refreshedForHighlightRef.current === highlightSongIdValid) {
+      return;
+    }
+    refreshedForHighlightRef.current = highlightSongIdValid;
+    refreshData();
+  }, [highlightSongIdValid, refreshData]);
+
+  const clearHighlight = useCallback(() => {
+    router.setParams({ highlightSongId: "" });
+  }, [router]);
 
   const onLikeCountUpdate = useCallback(
     (payload: LikeCountUpdatePayload) => {
@@ -87,6 +119,8 @@ export default function Profile() {
           mostPopularLoading={popular.isLoading}
           recentlyLikedSongs={liked.songs}
           recentlyLikedLoading={liked.isLoading}
+          highlightSongId={highlightSongIdValid}
+          onHighlightConsumed={clearHighlight}
         />
       )}
     </View>

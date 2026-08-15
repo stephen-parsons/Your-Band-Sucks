@@ -1,4 +1,4 @@
-const SAFE_FILENAME = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+const SAFE_FILENAME = /^[a-zA-Z0-9][a-zA-Z0-9._-\s]*$/;
 
 export class UnsafeFilenameError extends Error {
   constructor(filename: unknown) {

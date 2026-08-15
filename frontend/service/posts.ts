@@ -107,8 +107,8 @@ export class PostService extends ApiService {
     description,
     tags,
     key,
-  }: CreateNewPostBody): Promise<unknown> {
-    return this.fetch<unknown>("/posts/new", {
+  }: CreateNewPostBody): Promise<Post> {
+    return this.fetch<Post>("/posts/new", {
       method: "POST",
       body: JSON.stringify({
         title,
