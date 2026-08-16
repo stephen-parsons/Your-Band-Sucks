@@ -1,11 +1,13 @@
+import { ErrorModal } from "@/components/ErrorModal";
 import { Leaderboard } from "@/components/LeaderBoard";
 import { usePostContext } from "@/components/PostProvider";
 import { useWebSocketContext } from "@/components/WebSocketProvider";
+import { useErrorRetry } from "@/hooks/use-error-retry";
 import { Post, Posts } from "@/service/posts";
 import { patchRankedLikeCountList } from "@/util/likeCountList";
 import { LikeCountUpdatePayload } from "@/util/websocket";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthContext } from "../auth";
 
@@ -58,6 +60,7 @@ export default function LeaderBoardView() {
   const [boards, setBoards] = useState<LeaderboardState | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
+  const { retryCount, onRetry } = useErrorRetry();
 
   const onLikeCountUpdate = useCallback((payload: LikeCountUpdatePayload) => {
     setBoards((prev) => (prev ? applyLikeCountUpdate(prev, payload) : prev));
@@ -70,35 +73,38 @@ export default function LeaderBoardView() {
     return subscribeLikeCountUpdate(onLikeCountUpdate);
   }, [isAuthenticated, subscribeLikeCountUpdate, onLikeCountUpdate]);
 
+  const fetchPosts = useCallback(async (): Promise<void> => {
+    try {
+      console.info("Fetching leaderboard...");
+      setIsLoading(true);
+      const [mostLiked, leastLiked] = await Promise.all([
+        service.getMostPopularPosts(),
+        service.getLeastPopularPosts(),
+      ]);
+      setBoards({ mostLiked, leastLiked });
+      setError(null);
+      setIsLoading(false);
+    } catch (e) {
+      setError(e as Error);
+      console.error(e);
+      setIsLoading(false);
+    }
+  }, [service]);
+
   useEffect(() => {
-    async function fetchPosts() {
-      try {
-        console.info("Fetching leaderboard...");
-        setIsLoading(true);
-        const [mostLiked, leastLiked] = await Promise.all([
-          service.getMostPopularPosts(),
-          service.getLeastPopularPosts(),
-        ]);
-        setBoards({ mostLiked, leastLiked });
-        setIsLoading(false);
-      } catch (e) {
-        setError(e as Error);
-        console.error(e);
-        setIsLoading(false);
-      }
-    }
     if (isAuthenticated && boards === null && !error) {
-      fetchPosts();
+      void fetchPosts();
     }
-  }, [boards, isAuthenticated, service, error]);
+  }, [boards, isAuthenticated, fetchPosts, error]);
 
   return (
     <SafeAreaView style={styles.container}>
-      {error && (
-        <Text style={{ fontSize: 44, color: "white", textAlign: "center" }}>
-          {error?.message}
-        </Text>
-      )}
+      <ErrorModal
+        visible={error !== null}
+        error={error}
+        retryCount={retryCount}
+        onRetry={() => onRetry(() => setError(null))}
+      />
       {isLoading && (
         <View style={styles.horizontal}>
           <ActivityIndicator size="large" color="#0000ff" />

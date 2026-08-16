@@ -1,3 +1,4 @@
+import { HttpError } from "@/util/httpError";
 import { useAuthenticator } from "@aws-amplify/ui-react-native";
 import { AuthSession, AuthUser, fetchAuthSession } from "aws-amplify/auth";
 import {
@@ -76,7 +77,7 @@ export default function AuthProvider({ children }: PropsWithChildren) {
   /**
    * Wraps the fetch API with error handling and token refreshing.
    * If the access token is expired, it will be refreshed and the request will be retried.
-   * @throws {Error} if the request is outside StatusCode 200-299
+   * @throws {HttpError} if the request is outside StatusCode 200-299
    */
   const apiClient = useCallback(
     async (input: string | URL | Request, options: RequestInit = {}) => {
@@ -99,17 +100,19 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 
         const response = await fetch(input, config);
         if (!response.ok) {
-          const errorBody = await response.json();
-          throw new Error(
-            `HTTP error! status: ${response.status} ${response.statusText} ${JSON.stringify(errorBody)}`,
-          );
+          let errorBody: unknown;
+          try {
+            errorBody = await response.json();
+          } catch {
+            errorBody = undefined;
+          }
+          throw new HttpError(response.status, response.statusText, errorBody);
         }
         return response;
       } catch (error) {
         console.error(
           "Error fetching from API client:",
           (error as Error).message,
-          error,
         );
         throw error;
       }

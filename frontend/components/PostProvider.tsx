@@ -1,13 +1,13 @@
 import { useAuthContext } from "@/app/auth";
 import { Like, Posts, PostService } from "@/service/posts";
 import {
-  createContext,
-  PropsWithChildren,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
+    createContext,
+    PropsWithChildren,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
 } from "react";
 import AudioProvider from "../audio/AudioManager";
 
@@ -16,6 +16,7 @@ interface IPostContext {
   isLoading: boolean;
   error: Error | null;
   service: PostService;
+  retry: () => void;
 }
 
 const PostContext = createContext<IPostContext>({
@@ -23,6 +24,9 @@ const PostContext = createContext<IPostContext>({
   isLoading: false,
   error: null,
   service: new PostService(fetch),
+  retry: () => {
+    return;
+  },
 });
 
 export function PostContextProvider({ children }: PropsWithChildren) {
@@ -52,22 +56,30 @@ export function PostContextProvider({ children }: PropsWithChildren) {
     [apiClient, updateLikeStatus],
   );
 
-  useEffect(() => {
-    async function fetchFeed() {
-      try {
-        console.info("Fetching posts...");
-        setIsLoading(true);
-        const result = await service.getPosts();
-        setPosts(result);
-        setIsLoading(false);
-      } catch (e) {
-        setError(e as Error);
-        console.error(e);
-        setIsLoading(false);
-      }
+  const fetchFeed = useCallback(async (): Promise<void> => {
+    try {
+      console.info("Fetching posts...");
+      setIsLoading(true);
+      const result = await service.getPosts();
+      setPosts(result);
+      setError(null);
+      setIsLoading(false);
+    } catch (e) {
+      setError(e as Error);
+      console.error(e);
+      setIsLoading(false);
     }
-    if (isAuthenticated && posts === null && !isLoading) fetchFeed();
-  }, [posts, isAuthenticated, service]);
+  }, [service]);
+
+  const retry = useCallback((): void => {
+    setError(null);
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated && posts === null && !error) {
+      void fetchFeed();
+    }
+  }, [posts, isAuthenticated, fetchFeed, error]);
 
   useEffect(() => {
     //pre-load audio buffers in order
@@ -85,7 +97,7 @@ export function PostContextProvider({ children }: PropsWithChildren) {
   }, [posts]);
 
   return (
-    <PostContext.Provider value={{ posts, isLoading, error, service }}>
+    <PostContext.Provider value={{ posts, isLoading, error, service, retry }}>
       {children}
     </PostContext.Provider>
   );

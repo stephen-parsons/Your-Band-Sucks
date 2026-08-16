@@ -1,22 +1,24 @@
 import AudioProvider from "@/audio/AudioManager";
 import { AudioPost, ITEM_HEIGHT } from "@/components/AudioPost";
+import { ErrorModal } from "@/components/ErrorModal";
 import { usePostContext } from "@/components/PostProvider";
 import { Header } from "@/components/ui/Header";
+import { useErrorRetry } from "@/hooks/use-error-retry";
 import { Post } from "@/service/posts";
 import { useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  View,
-  ViewabilityConfig,
-  ViewabilityConfigCallbackPair,
+    ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    View,
+    ViewabilityConfig,
+    ViewabilityConfigCallbackPair,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Feed() {
-  const { posts, isLoading, error } = usePostContext();
+  const { posts, isLoading, error, retry } = usePostContext();
+  const { retryCount, onRetry } = useErrorRetry();
 
   //track the current item in order to determine scroll enabling
   const [currentItem, setCurrentItem] = useState<Post["id"]>(0);
@@ -54,11 +56,12 @@ export default function Feed() {
       edges={{ top: "additive", bottom: "off" }}
       style={{ flex: 1, padding: 20 }}
     >
-      {error && (
-        <Text style={{ fontSize: 44, color: "white", textAlign: "center" }}>
-          {error?.message}
-        </Text>
-      )}
+      <ErrorModal
+        visible={error !== null}
+        error={error}
+        retryCount={retryCount}
+        onRetry={() => onRetry(retry)}
+      />
       {!isLoading && !error && posts && (
         <FlatList
           invertStickyHeaders={isLoading}
