@@ -3,42 +3,42 @@ import { Post, Posts, Tag as TagType } from "@/service/posts";
 import { uploadToS3, UserProfile, UserService } from "@/service/user";
 import { assertSafeFilename, UnsafeFilenameError } from "@/util/filename";
 import {
-    FontAwesome,
-    Ionicons,
-    MaterialCommunityIcons,
+  FontAwesome,
+  Ionicons,
+  MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import React, {
-    ReactNode,
-    useCallback,
-    useEffect,
-    useMemo,
-    useState,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
 } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Modal,
-    Platform,
-    Pressable,
-    StyleSheet,
-    TouchableOpacity,
-    Vibration,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TouchableOpacity,
+  Vibration,
+  View,
 } from "react-native";
 import Animated, {
-    cancelAnimation,
-    FadeInDown,
-    FadeInRight,
-    interpolateColor,
-    LinearTransition,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withSequence,
-    withSpring,
-    withTiming,
+  cancelAnimation,
+  FadeInDown,
+  FadeInRight,
+  interpolateColor,
+  LinearTransition,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AudioProvider from "../audio/AudioManager";
@@ -50,7 +50,7 @@ import { TableTab } from "./ui/TableTab";
 import Tag from "./ui/Tag";
 
 //in megabytes
-const MAX_FILE_SIZE = 10;
+const MAX_FILE_SIZE = 15;
 
 //in bytes
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE * 1024 * 1024;
@@ -111,6 +111,14 @@ const AccountProfile = ({
     setActiveView("Recently uploaded");
   }, [highlightSongId]);
 
+  const assertMaxFileSize = useCallback(
+    (file: ImagePicker.ImagePickerAsset) => {
+      if ((file.fileSize ?? 0) > MAX_FILE_SIZE_BYTES)
+        throw new MaxFileSizeError();
+    },
+    [MAX_FILE_SIZE_BYTES],
+  );
+
   const uploadImageFile = useCallback(async () => {
     if (uploading) {
       console.info("Already uploading...");
@@ -122,7 +130,7 @@ const AccountProfile = ({
       return;
     }
 
-    if (file.fileSize ?? 0 > MAX_FILE_SIZE_BYTES) throw new MaxFileSizeError();
+    assertMaxFileSize(file);
 
     try {
       setUploading(true);
@@ -130,7 +138,6 @@ const AccountProfile = ({
       const filename = file.fileName || "avatar";
       assertSafeFilename(filename);
 
-      //Generate s3 object key based on user id and filename
       const { url: presignedUrl, objectKey } = await service.getPresignedUrl({
         filename,
         contentType: file.mimeType,
@@ -192,8 +199,7 @@ const AccountProfile = ({
 
       const file = result.assets && result.assets[0];
 
-      if (file?.fileSize ?? 0 > MAX_FILE_SIZE_BYTES)
-        throw new MaxFileSizeError();
+      file && assertMaxFileSize(file);
 
       if (file?.fileName) {
         assertSafeFilename(file.fileName);
@@ -400,7 +406,7 @@ const AccountProfile = ({
         >
           <View style={styles.audioModalHeader}>
             <ThemedText style={styles.audioModalTitle} numberOfLines={1}>
-              {selectedPost?.title ?? ""}
+              {""}
             </ThemedText>
             <TouchableOpacity
               onPress={closeAudioPost}
