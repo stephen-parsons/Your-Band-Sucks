@@ -142,11 +142,18 @@ export async function findUserProfileByCognitoId(cognitoId: string) {
   });
 }
 
+/**
+ * Returns every tag on songs this user uploaded.
+ * Counts and sort order are based on this user's songs, not the global tag total.
+ * Limited to 10 tags.
+ * @param cognitoId The cognito ID of the user to find tags for.
+ * @returns An array of tags, sorted by the number of songs using the tag, in descending order.
+ */
 export async function findUserTagsByCognitoId(cognitoId: string) {
-  return prisma.tag.findMany({
+  const tags = await prisma.tag.findMany({
     where: {
       songs: {
-        every: {
+        some: {
           user: { cognitoId },
         },
       },
@@ -154,11 +161,19 @@ export async function findUserTagsByCognitoId(cognitoId: string) {
     select: {
       id: true,
       description: true,
-      _count: true,
+      _count: {
+        select: {
+          songs: {
+            where: {
+              user: { cognitoId },
+            },
+          },
+        },
+      },
     },
-    take: 10,
-    orderBy: { songs: { _count: "desc" } },
   });
+
+  return tags.sort((a, b) => b._count.songs - a._count.songs).slice(0, 10);
 }
 
 export async function createUser({
