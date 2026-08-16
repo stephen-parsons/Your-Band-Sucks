@@ -149,11 +149,12 @@ router.post("/new", async (req, res) => {
 
 /**
  * Generates a pre-signed url for uploading an avatar.
+ * S3 object keys use `{cognitoId}/{filename}`.
  */
 router.post(
   "/avatar/pre-signed-url",
   async (req: AuthenticatedRequest, res) => {
-    const userId = req.userId!;
+    const cognitoId = req.cognitoId;
     try {
       const {
         filename,
@@ -163,7 +164,7 @@ router.post(
         contentType: string;
       } = req.body;
       assertSafeFilename(filename);
-      const key = `${userId}/${filename}`;
+      const key = `${cognitoId}/${filename}`;
       const bucket = config.aws.bucket.images;
       const url = await createPresignedUrlWithClientPUT({
         bucket,
