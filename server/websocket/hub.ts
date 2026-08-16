@@ -9,7 +9,7 @@ import { WsServerEvent } from "./events";
 const WS_PATH = "/ws";
 const PING_INTERVAL_MS = 30_000;
 
-const hubLogger = moduleLogger("websocket/hub");
+const hubLogger = moduleLogger("websocket/hub", { devOnly: false });
 
 interface AuthenticatedSocket extends WebSocket {
   userId: number;

@@ -33,12 +33,15 @@ import { serializeRealtimeLikeCounts } from "../serializers/likeCount";
 import { SerializedPost, serializePosts } from "../serializers/posts";
 import { BUCKETS, createPresignedUrlWithClientPUT } from "../service/S3Service";
 import { assertSafeFilename, UnsafeFilenameError } from "../util/filename";
+import { moduleLogger } from "../util/logger";
 import {
   broadcastLikeCountUpdate,
   notifySongLiked,
 } from "../websocket/publish";
 
 const DEFAULT_POST_LIMIT = 15;
+
+const postsLogger = moduleLogger("posts", { devOnly: false });
 
 const router = express.Router();
 
@@ -53,7 +56,7 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
     return res.status(200).json(withRealtimeCounts);
   }
 
-  console.warn("User posts cache not found, fetching posts...");
+  postsLogger.warn("User posts cache not found, fetching posts...");
 
   try {
     const posts = await getRecommendedFeed(req.userId!, DEFAULT_POST_LIMIT);
@@ -63,7 +66,7 @@ router.get("/", async (req: AuthenticatedRequest, res) => {
       await serializeRealtimeLikeCounts(serializedPosts);
     res.status(200).json(withRealtimeCounts);
   } catch (error) {
-    console.error(error);
+    postsLogger.error(error);
     res.status(500).json({ error: "Failed to fetch posts" });
   }
 });
@@ -97,7 +100,7 @@ router.post("/new", async (req: AuthenticatedRequest, res) => {
     // freshness after upload matters. liked-songs is usually unchanged by own upload.
     res.status(200).json(newSong);
   } catch (e) {
-    console.error(e);
+    postsLogger.error(e);
     res.status(500).json({ error: "Failed to create new song" });
   }
 });
@@ -125,7 +128,7 @@ router.post("/pre-signed-url", async (req: AuthenticatedRequest, res) => {
     });
     res.status(200).json({ objectKey: key, url });
   } catch (e) {
-    console.error(e);
+    postsLogger.error(e);
     if (e instanceof UnsafeFilenameError) {
       return res.status(400).json({ error: e.message });
     }
@@ -185,7 +188,7 @@ router.post("/like", async (req: AuthenticatedRequest, res) => {
 
     res.status(200).json({ likeCount: song.likeCount });
   } catch (e) {
-    console.error(e);
+    postsLogger.error(e);
     res.status(500).json({ error: "Failed to process like" });
   }
 });
@@ -200,7 +203,7 @@ router.get("/most-liked", async (_req, res) => {
         : await fetchMostLikedFromDb();
     res.status(200).json(posts);
   } catch (error) {
-    console.error(error);
+    postsLogger.error(error);
     res.status(500).json({ error: "Failed to fetch most-liked" });
   }
 });
@@ -215,7 +218,7 @@ router.get("/least-liked", async (_req, res) => {
         : await fetchLeastLikedFromDb();
     res.status(200).json(posts);
   } catch (error) {
-    console.error(error);
+    postsLogger.error(error);
     res.status(500).json({ error: "Failed to fetch least-liked" });
   }
 });

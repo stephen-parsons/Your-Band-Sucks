@@ -32,7 +32,7 @@ export async function verifyAccessToken(token: string) {
     return payload;
   } catch (error) {
     cognitoLogger.error("Token invalid:", error);
-    throw new Error("Unauthorized");
+    throw new Error("Unauthorized: " + error);
   }
 }
 
@@ -43,6 +43,6 @@ export async function verifyIdToken(token: string) {
     return payload;
   } catch (error) {
     cognitoLogger.error("Token invalid:", error);
-    throw new Error("Unauthorized");
+    throw new Error("Unauthorized: " + error);
   }
 }

@@ -1,6 +1,7 @@
 import express from "express";
 import { getActivePgConnections } from "../queries/health";
 import { client, healthCheck } from "../redis/redis";
+import { moduleLogger } from "../util/logger";
 import { getWebSocketHealth } from "../websocket/hub";
 
 const router = express.Router();
@@ -8,13 +9,11 @@ const router = express.Router();
 const gitCommit = process.env.GIT_COMMIT ?? "unknown";
 const gitCommitShort = gitCommit.slice(-7);
 
+const healthLogger = moduleLogger("health", { devOnly: false });
+
 router.get("/", async (req, res) => {
   try {
-    const connections = (await getActivePgConnections()).map((connection) => {
-      if (connection.state === null)
-        return { count: connection.count.toString(), state: "idle" };
-      return { ...connection, count: connection.count.toString() };
-    });
+    const connections = (await getActivePgConnections()).length;
     const pong = await pingRedis();
     const websocket = getWebSocketHealth();
 
@@ -26,7 +25,7 @@ router.get("/", async (req, res) => {
       db: { status: "UP", connections },
     });
   } catch (err: unknown) {
-    console.error(err);
+    healthLogger.error(err);
     res.status(503).send({ status: "DOWN", commit: gitCommitShort });
   }
 });
@@ -37,7 +36,7 @@ async function pingRedis() {
     const ping = await healthCheck();
     return ping.response === "PONG" ? "HEALTHY" : "UNHEALTHY";
   } catch (e) {
-    console.error("Redis health check failed:", e);
+    healthLogger.error("Redis health check failed:", e);
     return "UNHEALTHY";
   }
 }

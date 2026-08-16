@@ -5,7 +5,9 @@ import { getCacheItem, setCacheItem } from "../redis/redis";
 import { verifyAccessToken } from "../service/CognitoService";
 import { moduleLogger } from "../util/logger";
 
-export const authResolveLogger = moduleLogger("auth/resolveUser");
+export const authResolveLogger = moduleLogger("auth/resolveUser", {
+  devOnly: false,
+});
 
 export interface ResolvedAuthUser {
   cognitoId: string;

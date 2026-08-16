@@ -29,7 +29,10 @@ import {
   deleteS3Object,
 } from "../service/S3Service";
 import { assertSafeFilename, UnsafeFilenameError } from "../util/filename";
+import { moduleLogger } from "../util/logger";
 import { mapTagResults } from "../util/tags";
+
+const usersLogger = moduleLogger("users", { devOnly: false });
 
 const router = express.Router();
 
@@ -45,7 +48,7 @@ router.get("/current", async (req: AuthenticatedRequest, res) => {
     const user = await findUserProfileByCognitoId(cognitoId!);
 
     if (!user) {
-      console.warn("User not found, create an new user!");
+      usersLogger.warn("User not found, create an new user!");
       return res.status(200).json(null);
     }
 
@@ -65,7 +68,7 @@ router.get("/current", async (req: AuthenticatedRequest, res) => {
     };
     res.status(200).json(result);
   } catch (e) {
-    console.error(e);
+    usersLogger.error(e);
     res
       .status(500)
       .json({ error: `Failed to fetch user by id: ${req.userId}` });
@@ -88,7 +91,7 @@ router.get("/current/popular-songs", async (req: AuthenticatedRequest, res) => {
     const songsWithRealtimeCounts = await serializeRealtimeLikeCounts(songs);
     res.status(200).json(songsWithRealtimeCounts);
   } catch (e) {
-    console.error(e);
+    usersLogger.error(e);
     res.status(500).json({ error: "Failed to fetch most popular songs" });
   }
 });
@@ -109,7 +112,7 @@ router.get("/current/liked-songs", async (req: AuthenticatedRequest, res) => {
     const songsWithRealtimeCounts = await serializeRealtimeLikeCounts(songs);
     res.status(200).json(songsWithRealtimeCounts);
   } catch (e) {
-    console.error(e);
+    usersLogger.error(e);
     res.status(500).json({ error: "Failed to fetch recently liked songs" });
   }
 });
@@ -136,7 +139,7 @@ router.post("/new", async (req, res) => {
     });
     res.status(200).json(newUser);
   } catch (e: any) {
-    console.error(e);
+    usersLogger.error(e);
     if (e.code === "P2002") {
       return res.status(409).json({ error: "User already exists" });
     }
@@ -169,7 +172,7 @@ router.post(
       });
       res.status(200).json({ url, objectKey: key });
     } catch (e) {
-      console.error(e);
+      usersLogger.error(e);
       if (e instanceof UnsafeFilenameError) {
         return res.status(400).json({ error: e.message });
       }
@@ -191,7 +194,7 @@ router.post("/avatar/update", async (req: AuthenticatedRequest, res) => {
     const nawAvatar = await updateUserAvatar(userId, key);
     res.status(200).json(nawAvatar);
   } catch (e: any) {
-    console.error(e);
+    usersLogger.error(e);
     res.status(500).json({ error: "Failed to update avatar" });
   }
 });
@@ -215,7 +218,7 @@ router.post("/avatar/update/delete", async (req: AuthenticatedRequest, res) => {
     const newUser = await clearUserAvatar(userId);
     res.status(200).json(newUser);
   } catch (e: any) {
-    console.error(e);
+    usersLogger.error(e);
     res.status(500).json({ error: "Failed to delete avatar" });
   }
 });

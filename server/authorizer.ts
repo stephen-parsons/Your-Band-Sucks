@@ -9,7 +9,7 @@ import { moduleLogger } from "./util/logger";
  **/
 const unauthorizedPaths = ["/current", "/new"];
 
-export const authorizerLogger = moduleLogger("authorizer");
+export const authorizerLogger = moduleLogger("authorizer", { devOnly: false });
 
 /**
  * Middleware that authorizes an AWS Cognito access token, sent as a Bearer token in the authorization header.

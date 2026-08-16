@@ -3,7 +3,10 @@
 import express from "express";
 import { cognitoAuthorizer } from "../authorizer";
 import { findAllTags } from "../queries/tags";
+import { moduleLogger } from "../util/logger";
 import { mapTagResults } from "../util/tags";
+
+const tagsLogger = moduleLogger("tags", { devOnly: false });
 
 const router = express.Router();
 
@@ -14,7 +17,7 @@ router.get("/", async (req, res) => {
     const tags = mapTagResults(await findAllTags());
     res.status(200).json(tags);
   } catch (e) {
-    console.error(e);
+    tagsLogger.error(e);
     res.status(500).json({ error: "Failed to fetch tags" });
   }
 });

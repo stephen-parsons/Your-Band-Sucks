@@ -9,6 +9,6 @@ if (!IAM_USER_AWS_ACCESS_KEY_ID || !IAM_USER_AWS_SECRET_ACCESS_KEY)
  * These are long running credentials are for an IAM User.
  */
 export const credentials = {
-  accessKeyId: process.env.IAM_USER_AWS_ACCESS_KEY_ID!,
-  secretAccessKey: process.env.IAM_USER_AWS_SECRET_ACCESS_KEY!,
+  accessKeyId: IAM_USER_AWS_ACCESS_KEY_ID,
+  secretAccessKey: IAM_USER_AWS_SECRET_ACCESS_KEY,
 };
